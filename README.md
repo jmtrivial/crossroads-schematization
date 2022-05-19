@@ -39,13 +39,7 @@ Each pedestrian crossing is described by a dedicated pictogram, aligned with the
     * line.interpolate
   * ```osmnx.utils_graph.graph_to_gdfs```
 
+* convert to svg:
+  * http://kuanbutts.com/2018/09/06/geodataframe-to-svg-2/
+  * https://svgis.readthedocs.io/en/stable/
 
-  * geometry processing: 
-  * https://wolfv.medium.com/introducing-scikit-geometry-ae1dccaad5fd
-  * https://docs.sympy.org/latest/modules/geometry/lines.html
-* QGIS: 
-  * QgsGeometry::simplify
-  * QgsGeometry::extendLine
-* compactness: https://github.com/c-martinez/pydescriptors
-* PCA in 2D:
-  * https://scipy-lectures.org/packages/scikit-learn/auto_examples/plot_pca.html
