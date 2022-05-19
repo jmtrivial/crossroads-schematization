@@ -148,6 +148,25 @@ class CrossroadSchematization:
 
         self.extend_branches()
 
+        # compute for each branch two long edges *S1* and *S2* corresponding to the sidewalks:
+        # TODO
+
+
+        # assemble sidewalks
+        # TODO
+
+        # compute inner region 
+        # TODO
+
+        # add a white space
+        # TODO
+
+        # build traffic islands
+        # TODO
+
+        # build pedestrian crossings
+        # TODO
+
 
     def load_osm(self):
         # load OSM data from the same crossroad (osmnx:graph)
@@ -215,29 +234,4 @@ crschem = CrossroadSchematization(cr_input)
 crschem.show()
 
 
-
-# merge extended Jérémy's tags in osmnx:graph as tags
-# TODO
-
-# convert them in geopandas formalism
-# TODO
-
-# compute for each branch two long edges *S1* and *S2* corresponding to the sidewalks:
-# TODO
-
-
-# assemble sidewalks
-# TODO
-
-# compute inner region 
-# TODO
-
-# add a white space
-# TODO
-
-# build traffic islands
-# TODO
-
-# build pedestrian crossings
-# TODO
 
