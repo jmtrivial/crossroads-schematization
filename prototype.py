@@ -209,7 +209,7 @@ class StraightWay:
             elif gEdge["highway"] in ["primary"]:
                 width = 3
             elif gEdge["highway"] in ["secondary"]:
-                width = 2.75
+                width = 3
             elif gEdge["highway"] in ["service"]:
                 width = 2.25
             else:
