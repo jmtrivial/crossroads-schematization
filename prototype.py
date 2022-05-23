@@ -381,6 +381,7 @@ class CrossroadSchematization:
         # convert to undirected graph
         self.osm_input = osmnx.utils_graph.get_undirected(self.osm_input_oriented)
 
+
     def label_osm_from_input(self):
         # label edges of the graph from cr_input
         print("Label OSM network")
@@ -466,7 +467,6 @@ class CrossroadSchematization:
                             distance = d
                 edges.append(emeters)
 
-
         return distance
 
     def build_sidewalks(self):
@@ -503,7 +503,6 @@ class CrossroadSchematization:
                 self.sidewalks[bid] = self.build_two_sidewalks(middle_line, width,
                                                                 wbranches[order[0]][1], so[order[0]],
                                                                 wbranches[order[1]][1], so[order[1]])
-                
 
             else:
                 print("Not supported configuration:", len(wbranches), "sidewalk on branch", bid)
@@ -568,7 +567,6 @@ class CrossroadSchematization:
         self.inner_region = Polygon(final_shape)
 
 
-
     def add_white_space_inner_region(self):
         print("Adding white space")
         
@@ -599,7 +597,6 @@ class CrossroadSchematization:
                         p2 = self.osm_input.nodes[n2]
                         plt.plot([p1["x"], p2["x"]], [p1["y"], p2["y"]], color = "grey")
 
-
         if linear_ways:
             for geom in self.linear_ways:
                 x, y = self.linear_ways[geom].edge.xy
@@ -629,14 +626,12 @@ class CrossroadSchematization:
             
                 plt.plot(x, y, color = colors[ sw.sidewalk_id() % len(colors)])
 
-
         plt.show()
 
 
 # load geojson data from Jérémy's tool
 print("Loading input geojson (" + args.i.name + ")")
 cr_input = geopandas.read_file(args.i)
-
 
 crschem = CrossroadSchematization(cr_input)
 
