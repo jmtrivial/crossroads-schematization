@@ -26,12 +26,14 @@ def reverse_geom(geom):
 
     return shapely.ops.transform(_reverse, geom)
 
+
 class Linearization:
     
     def __init__(self, length = 30):
         self.exponential_coef = 1.2
         self.length = length
     
+
     def process(self, polyline):
         #polyline = convert_to_linestring(G, polybranch)
 
@@ -54,6 +56,7 @@ class Linearization:
             result.append(n)
         return result
 
+
     def discretize_polyline(self, polyline):
         # exponential interpolation, starting from 1 meter
         return LineString([polyline.interpolate(x) for x in self.exponential_coordinates(1, polyline.length)])
@@ -67,6 +70,7 @@ class Linearization:
         v = [center.x - start[0], center.y - start[1]]
         v = v / linalg.norm(v)
         return LineString([start, start + v * self.length])
+
 
     def project_on_line(point, line):
         return line.interpolate(line.project(point))
