@@ -328,6 +328,50 @@ class TurningSidewalk:
         return self.way.buffer(size)
 
 
+class TrafficIsland:
+
+    def __init__(self, edgelist, osm_input):
+        self.edgelist = [list(map(int, x.split(";"))) for x in edgelist]
+        self.osm_input = osm_input
+
+        self.build_polygon()
+
+    def build_polygon(self):
+
+        ledges = copy.copy(self.edgelist)
+        if len(self.edgelist) == 0:
+            self.polygon = []
+            return
+
+        self.polygon = ledges.pop()
+
+        reverse = False
+        while len(ledges) != 0:
+            # find next element in ledges
+            found = False
+            for i, e in enumerate(ledges):
+                if e[0] == self.polygon[-1]:
+                    self.polygon += e[1:]
+                    ledges.pop(i)
+                    found = True
+                    break
+                if e[-1] == self.polygon[-1]:
+                    self.polygon += e[::-1][1:]
+                    ledges.pop(i)
+                    found = True
+                    break
+            if not found:
+                if reverse:
+                    print("Error: cannot merge all edges in a single traffic island")
+                    return
+                else:
+                    reverse = True
+                    self.polygon = self.polygon[::-1]
+
+    def get_linearring(self):
+        points = [self.osm_input.nodes[x] for x in self.polygon]
+        return LinearRing([(p["x"], p["y"]) for p in points])
+
 class CrossroadSchematization:
 
 
@@ -362,9 +406,9 @@ class CrossroadSchematization:
         self.add_white_space_inner_region()
 
         # build traffic islands
-        # TODO
+        self.build_traffic_islands()
 
-        # build pedestrian crossings
+        # add pedestrian crossings
         # TODO
 
 
@@ -580,14 +624,35 @@ class CrossroadSchematization:
             self.inner_region = self.inner_region.difference(p)
 
 
+    def build_traffic_islands(self):
+        print("Building traffic island")
+        traffic_islands_edges = {}
+
+        # first group edges by island id
+        for index, elem in self.cr_input.iterrows():
+            if elem["type"] in ["branch", "way"]:                
+                for side in ["left", "right"]:
+                    if not isinstance(elem[side + "_island"], float):
+                        id = int(elem[side + "_island"])
+                        if not id in traffic_islands_edges:
+                            traffic_islands_edges[id] = []
+                        traffic_islands_edges[id].append(elem["id"])
+                
+        # then build traffic islands
+        self.traffic_islands = []
+        for eid in traffic_islands_edges:
+            self.traffic_islands.append(TrafficIsland(traffic_islands_edges[eid], self.osm_input))
+
+
     def show(self, 
              osm_graph = False,
              linear_ways = False,
              branches = False,
              simple_sidewalks = False,
              merged_sidewalks = True,
-             inner_region = True):
-        colors = [ 'r', 'y', 'b', 'g', 'o', 'p', 'b']
+             inner_region = True,
+             exact_islands = True):
+        colors = [ 'r', 'y', 'b', 'g', "orange", 'purple', 'b']
 
         if inner_region:
             p = geopandas.GeoSeries(self.inner_region)
@@ -620,15 +685,18 @@ class CrossroadSchematization:
                 for sw in self.sidewalks[sid]:
                     x, y = sw.edge.xy
 
-                    plt.plot(x, y, color = colors[ sw.sidewalk_id() % len(colors)])
+                    plt.plot(x, y, color = colors[sw.sidewalk_id() % len(colors)])
                     plt.plot(x[0],y[0],'ok')
 
         if merged_sidewalks:
             for sw in self.merged_sidewalks:
                 x, y = sw.way.xy
+                plt.plot(x, y, color = colors[sw.sidewalk_id() % len(colors)], linewidth=3)
 
-            
-                plt.plot(x, y, color = colors[ sw.sidewalk_id() % len(colors)])
+        if exact_islands:
+            for i, sw in enumerate(self.traffic_islands):
+                x, y = sw.get_linearring().xy
+                plt.plot(x, y, color = colors[i % len(colors)], linewidth=1)
 
         plt.show()
 
