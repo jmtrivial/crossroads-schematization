@@ -545,7 +545,7 @@ class CrossroadSchematization:
         # order sidewalks
         final_shape = [(open_sides.pop(), True)]
         while len(open_sides) != 0:
-            cid = final_shape[-1][0].branch_names()[1]
+            cid = final_shape[-1][0].branch_names()[1 if final_shape[-1][1] else 0]
             found = False
             for i, o in enumerate(open_sides):
                 if o.branch_names()[0] == cid:
