@@ -196,12 +196,22 @@ class Expander:
 
 class StraightWay:
     
-    def __init__(self, edge, interior_node, n1, n2):
+    def __init__(self, edge, interior_node, n1, n2, cr_input):
         self.edge = edge
         self.array = np.asarray(edge.coords)
         self.interior_node = interior_node
         self.n1 = n1
         self.n2 = n2
+        self.cr_input = cr_input
+        self.edge_tags = self.get_initial_branch_edge()
+
+    def get_initial_branch_edge(self):
+        is_w = (self.cr_input["id"] == self.get_edge_id()) | (self.cr_input["id"] == self.get_edge_id_reverse())
+        filtered = self.cr_input[is_w]
+        if len(filtered) > 0:
+            return filtered.iloc[0, :].to_dict()
+        else:
+            return None
         
     def point(self, i):
         return Point(self.array[i])
@@ -562,7 +572,7 @@ class Branch:
         self.distance_kerb_footway = distance_kerb_footway
 
     
-    def addWay(self, way):
+    def add_way(self, way):
         self.ways.append(way)
 
     
@@ -587,37 +597,53 @@ class Branch:
                 StraightSidewalk(Utils.reverse_geom(way.parallel_offset(shift, "right")), oedge_right, so_right, "right")]
 
 
+    def get_initial_branche_width(self):
+        edges = []
+        distance = 0
+
+        for w in self.ways:
+            osm = [self.osm_input.nodes[int(x)] for x in [w.n1, w.n2]]
+            emeters = LineString([(x["x"], x["y"]) for x in osm])
+            if len(edges) != 0:
+                for ee in edges:
+                    d = ee.distance(emeters)
+                    if d > distance:
+                        distance = d
+            edges.append(emeters)
+
+        return distance
+
     def get_sidewalks(self):
         wbranches = self.ways
-        if len(wbranches) == 1 and wbranches[0][1]["left_sidewalk"] != "" and wbranches[0][1]["right_sidewalk"] != "":
-            self.width = wbranches[0][0].evaluate_width_way(self.osm_input) + 2 * self.distance_kerb_footway
-            so = self.is_initial_edge_same_orientation(wbranches[0][0])
-            self.middle_line = wbranches[0][0].edge
+        if len(wbranches) == 1 and wbranches[0].edge_tags["left_sidewalk"] != "" and wbranches[0].edge_tags["right_sidewalk"] != "":
+            self.width = wbranches[0].evaluate_width_way(self.osm_input) + 2 * self.distance_kerb_footway
+            so = self.is_initial_edge_same_orientation(wbranches[0])
+            self.middle_line = wbranches[0].edge
             self.sidewalks = self.build_two_sidewalks(self.middle_line, self.width, 
-                                                            wbranches[0][1], so,
-                                                            wbranches[0][1], so)
-        elif len(wbranches) == 2 and (wbranches[0][1]["left_sidewalk"] != "" or wbranches[0][1]["right_sidewalk"] != "") \
-                and (wbranches[1][1]["left_sidewalk"] != "" or wbranches[1][1]["right_sidewalk"] != ""):
+                                                            wbranches[0].edge_tags, so,
+                                                            wbranches[0].edge_tags, so)
+        elif len(wbranches) == 2 and (wbranches[0].edge_tags["left_sidewalk"] != "" or wbranches[0].edge_tags["right_sidewalk"] != "") \
+                and (wbranches[1].edge_tags["left_sidewalk"] != "" or wbranches[1].edge_tags["right_sidewalk"] != ""):
             # first build a middle line
-            self.middle_line = StraightWay.build_middle_line(wbranches[0][0], wbranches[1][0])
+            self.middle_line = StraightWay.build_middle_line(wbranches[0], wbranches[1])
 
             # then compute width of the street
-            self.width = wbranches[0][0].evaluate_width_way(self.osm_input) / 2 + \
-                    wbranches[1][0].evaluate_width_way(self.osm_input) / 2 + \
-                    self.get_initial_branche_width(bid) + 2 * self.distance_kerb_footway
+            self.width = wbranches[0].evaluate_width_way(self.osm_input) / 2 + \
+                    wbranches[1].evaluate_width_way(self.osm_input) / 2 + \
+                    self.get_initial_branche_width() + 2 * self.distance_kerb_footway
 
             # evaluate orientation of the initial edges
-            so = [self.is_initial_edge_same_orientation(wbranches[0][0]), 
-                    self.is_initial_edge_same_orientation(wbranches[1][0])]
+            so = [self.is_initial_edge_same_orientation(wbranches[0]), 
+                    self.is_initial_edge_same_orientation(wbranches[1])]
             # build two lines associated to the middle line (wrt correct direction)
             order = [0, 1]
             if not so[0]:
                 order.reverse()
-            if wbranches[order[0]][1]["left_sidewalk"] == "":
+            if wbranches[order[0]].edge_tags["left_sidewalk"] == "":
                 order.reverse()
             self.sidewalks = self.build_two_sidewalks(self.middle_line, self.width,
-                                                            wbranches[order[0]][1], so[order[0]],
-                                                            wbranches[order[1]][1], so[order[1]])
+                                                            wbranches[order[0]].edge_tags, so[order[0]],
+                                                            wbranches[order[1]].edge_tags, so[order[1]])
         else:
             print("Not supported configuration:", len(wbranches), "sidewalk on branch", bid)
 
@@ -634,7 +660,7 @@ class Branch:
         for bid in branches:
             b = branches[bid]
             d["type"].append("branch")
-            d["osm_id"].append(";".join([w[0].get_edge_id() for w in b.ways]))
+            d["osm_id"].append(";".join([w.get_edge_id() for w in b.ways]))
             d["geometry"].append(b.getGeometry())
 
         return geopandas.GeoDataFrame(d, crs=2154)
@@ -676,7 +702,7 @@ class CrossroadSchematization:
         self.extend_ways()
         
         # pairing branch ways
-        self.pair_ways_by_branch()
+        self.build_branches()
 
         # compute for each branch two long edges *S1* and *S2* corresponding to the sidewalks:
         self.build_sidewalks()
@@ -754,50 +780,22 @@ class CrossroadSchematization:
             for n2 in self.osm_input[n1]:
                 if n1 > n2 and self.osm_input[n1][n2][0]["type"] == "branch" and self.osm_input[n1][n2][0]["type_origin"] == "input":
                     bid, first_id, polybranch = e.process_to_linestring(self.osm_input, n1, n2)
-                    self.linear_ways[bid] = StraightWay(lz.process(polybranch), first_id, n1, n2)
+                    self.linear_ways[bid] = StraightWay(lz.process(polybranch), first_id, n1, n2, self.cr_input)
 
 
-    def get_initial_branch_edge(self, w):
-        is_w = (self.cr_input["id"] == w.get_edge_id()) | (self.cr_input["id"] == w.get_edge_id_reverse())
-        filtered = self.cr_input[is_w]
-        if len(filtered) > 0:
-            return filtered.iloc[0, :].to_dict()
-        else:
-            return None
-
-
-    def pair_ways_by_branch(self):
+    def build_branches(self):
         print("Pairing ways by branch")
         self.branches = {}
 
         for wid in self.linear_ways:
             w = self.linear_ways[wid]
-            e = self.get_initial_branch_edge(w)
+            e = w.edge_tags
             if e is not None and (e["left_sidewalk"] != "" or e["right_sidewalk"] != ""):
                 bname = e["name"]
                 if not bname in self.branches:
                     self.branches[bname] = Branch(bname, self.osm_input, self.cr_input, self.distance_kerb_footway)
-                self.branches[bname].addWay((w, e))
+                self.branches[bname].add_way(w)
 
-
-    def get_initial_branche_width(self, bid):
-        edges = []
-        distance = 0
-
-        for wid in self.linear_ways:
-            w = self.linear_ways[wid]
-            e = self.get_initial_branch_edge(w)
-            osm = [self.osm_input.nodes[int(x)] for x in e["id"].split(";")]
-            emeters = LineString([(x["x"], x["y"]) for x in osm])
-            if e["name"] == bid:
-                if len(edges) != 0:
-                    for ee in edges:
-                        d = ee.distance(emeters)
-                        if d > distance:
-                            distance = d
-                edges.append(emeters)
-
-        return distance
 
     def build_sidewalks(self):
         print("Building sidewalks")
@@ -922,7 +920,7 @@ class CrossroadSchematization:
              simple_sidewalks = False,
              merged_sidewalks = True,
              inner_region = True,
-             exact_islands = True,
+             exact_islands = False,
              crossings = True,
              islands = True):
         colors = [ 'r', 'y', 'b', 'g', "orange", 'purple', 'b']
@@ -946,10 +944,9 @@ class CrossroadSchematization:
                 plt.plot(x[0],y[0],'ok')
 
         if branches:
-            for geom in self.branches.ways:
-                print(len(self.branches.ways[geom]))
-                for ee in self.branches.ways[geom]:
-                    x, y = ee[0].edge.xy
+            for geom in self.branches:
+                for ee in self.branches[geom].ways:
+                    x, y = ee.edge.xy
                     plt.plot(x, y, color = "black")
                     plt.plot(x[0],y[0],'ok')
 
