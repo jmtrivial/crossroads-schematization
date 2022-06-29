@@ -1,5 +1,21 @@
 # Crossroads schematization
 
+Generate a schematization of an intersection from OpenStreetMap data.
+
+## Dependancies
+
+Crossroads schematization depends on ```crossroadsdescriber```, that implies the following cascading dependancies:
+
+* [crossroadsdescriber](https://github.com/jeremyk6/crossroadsdescriber/)
+* [crossroads-segmentation](https://github.com/jmtrivial/crossroads-segmentation)
+* OSMnx
+* NetworkX, geopandas
+
+
+## Usage
+
+A complete example of this library is available using the following command: ```PYTHONPATH=$PWD examples/get-crossroad-schematization.py```, using ```--help``` for possible parameters.
+
 ## Pipeline
 
 First compute for each branch two long edges *S1* and *S2* corresponding to the sidewalks:
