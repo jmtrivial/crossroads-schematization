@@ -20,6 +20,9 @@ class StraightWay:
         self.cr_input = cr_input
         self.edge_tags = self.get_initial_branch_edge()
 
+    def __str__(self):
+        return str((self.edge, self.interior_node, (self.n1, self.n2)))
+
     def get_initial_branch_edge(self):
         is_w = (self.cr_input["id"] == self.get_edge_id()) | (self.cr_input["id"] == self.get_edge_id_reverse())
         filtered = self.cr_input[is_w]

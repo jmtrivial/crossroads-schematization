@@ -32,7 +32,10 @@ class CrossroadSchematization:
         'crossing:island'
     ]
 
+    # If the OSM data has been previously loaded, do not load it again
     def __init__(self, cr_input, 
+                 osm_oriented = None,
+                 osm_unoriented = None,
                  osm_buffer_size_meters = 200, 
                  distance_kerb_footway = 0.5,
                  white_space_meter = 1.5,
@@ -43,7 +46,7 @@ class CrossroadSchematization:
         self.osm_buffer_for_bevel = osm_buffer_for_bevel
         self.cr_input = cr_input
 
-        self.load_osm()
+        self.load_osm(osm_oriented, osm_unoriented)
         self.label_osm_from_input()
 
         # TODO: if two ways are connected in the exterior side, then consider the next edge as the branch edge
@@ -61,9 +64,6 @@ class CrossroadSchematization:
         # compute inner region 
         self.build_inner_region()
 
-        # add a white space
-        self.add_white_space_inner_region()
-
         # build traffic islands
         self.build_traffic_islands()
 
@@ -80,24 +80,35 @@ class CrossroadSchematization:
         # TODO
 
 
-    def load_osm(self):
+    def load_osm(self, osm_oriented, osm_unoriented):
         # load OSM data from the same crossroad (osmnx:graph)
         bounds = self.cr_input.total_bounds
         center = [(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2]
 
-        print("Loading OpenStreetMap data " + str(center))
-        osmnx.settings.use_cache = True
-        osmnx.settings.useful_tags_node = list(set(osmnx.settings.useful_tags_node + CrossroadSchematization.node_tags_to_keep))
-        osm_input_init = osmnx.graph.graph_from_point(center, 
-                                                      self.osm_buffer_size_meters, 
-                                                      network_type="all", 
-                                                      retain_all=False, 
-                                                      truncate_by_edge=True, 
-                                                      simplify=False)
+        if osm_oriented is None:
+            print("Loading OpenStreetMap data " + str(center))
+            osmnx.settings.use_cache = True
+            osmnx.settings.useful_tags_node = list(set(osmnx.settings.useful_tags_node + CrossroadSchematization.node_tags_to_keep))
+            self.osm_input_oriented = osmnx.graph.graph_from_point(center, 
+                                                                   self.osm_buffer_size_meters, 
+                                                                   network_type="all", 
+                                                                   retain_all=False, 
+                                                                   truncate_by_edge=True, 
+                                                                   simplify=False)
+        else:
+            self.osm_input_oriented = osm_oriented
+
+        # TMP
+        osmnx.io.save_graph_geopackage(self.osm_input_oriented, "/tmp/graph.geopackage")
+
         # project to Lambert93 (France) for a metric approximation
-        self.osm_input_oriented = osmnx.projection.project_graph(osm_input_init, to_crs = "EPSG:2154")
-        # convert to undirected graph
-        self.osm_input = osmnx.utils_graph.get_undirected(self.osm_input_oriented)
+        self.osm_input_oriented = osmnx.projection.project_graph(self.osm_input_oriented, to_crs = "EPSG:2154")
+
+        if osm_unoriented is None:
+            # convert to undirected graph
+            self.osm_input = osmnx.utils_graph.get_undirected(self.osm_input_oriented)
+        else:
+            self.osm_input = osm_unoriented
 
 
     def label_osm_from_input(self):
@@ -210,15 +221,6 @@ class CrossroadSchematization:
         final_shape.append(final_shape[0])
 
         self.inner_region = Polygon(final_shape)
-
-
-    def add_white_space_inner_region(self):
-        print("Adding white space")
-        
-        # compute a buffer arround each sidewalk
-        # and remove these regions from the inner region
-        for p in [Polygon(x.buffer(self.white_space_meter)) for x in self.merged_sidewalks]:
-            self.inner_region = self.inner_region.difference(p)
 
 
     def build_traffic_islands(self):
