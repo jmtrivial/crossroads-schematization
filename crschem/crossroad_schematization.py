@@ -306,7 +306,7 @@ class CrossroadSchematization:
         if linear_ways:
             for geom in self.linear_ways:
                 x, y = self.linear_ways[geom].edge.xy
-                plt.plot(x, y, color = "gray")
+                plt.plot(x, y, color = "red")
                 plt.plot(x[0],y[0],'ok')
 
         if branches:

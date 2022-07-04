@@ -43,6 +43,10 @@ group_output.add_argument('-d', '--display-all', help='display all steps', actio
 group_output.add_argument('--display-preview', help='display a preview of the crossroad schematization', action='store_true')
 group_output.add_argument('-o', '--output', help='output file (supported format: svg, geojson)', type=FileOpener('w'))
 
+group_preview = parser.add_argument_group("Preview options", "Parameters used by the preview display")
+group_preview.add_argument('--osm', help='display OpenStreetMap network', action='store_true')
+group_preview.add_argument('--linear-ways', help='display linear ways', action='store_true')
+group_preview.add_argument('--branches', help='display branches', action='store_true')
 
 args = parser.parse_args()
 
@@ -117,7 +121,8 @@ try:
     crschem.process()
 
     if args.display_preview or args.display_all:
-        crschem.show(only_reachable_islands=args.only_reachable)
+        crschem.show(only_reachable_islands=args.only_reachable, osm_graph=args.osm,
+                     linear_ways=args.linear_ways, branches=args.branches)
 
     if args.output:
         if len(args.output.filename) < 4:
