@@ -148,7 +148,7 @@ class CrossroadSchematization:
         print("Extending branches")
 
         # compute for each way[type=branch] its extension
-        # and fit two long edges on each polyline
+        # and fit one long edge on each polyline
         self.linear_ways = {}
         for n1 in self.osm_input:
             for n2 in self.osm_input[n1]:
