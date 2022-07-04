@@ -47,6 +47,24 @@ class CrossroadSchematization:
         self.cr_input = cr_input
 
         self.load_osm(osm_oriented, osm_unoriented)
+
+
+    def is_valid_model(self):
+        for index, elem in self.cr_input.iterrows():
+            if elem["type"] in ["branch", "way"]:                
+                for side in ["left", "right"]:
+                    for obj in ["_island", "_sidewalk"]:
+                        key = side + obj
+                        if not (isinstance(elem[key], float) or elem[key] is None):
+                            print(key, "=", elem[key])
+                            return False
+
+
+            
+        return True
+
+
+    def process(self):
         self.label_osm_from_input()
 
         # TODO: if two ways are connected in the exterior side, then consider the next edge as the branch edge
@@ -97,9 +115,6 @@ class CrossroadSchematization:
                                                                    simplify=False)
         else:
             self.osm_input_oriented = osm_oriented
-
-        # TMP
-        osmnx.io.save_graph_geopackage(self.osm_input_oriented, "/tmp/graph.geopackage")
 
         # project to Lambert93 (France) for a metric approximation
         self.osm_input_oriented = osmnx.projection.project_graph(self.osm_input_oriented, to_crs = "EPSG:2154")
@@ -229,21 +244,21 @@ class CrossroadSchematization:
 
         # first group edges by island id
         for index, elem in self.cr_input.iterrows():
-            if elem["type"] in ["branch", "way"]:                
+            if elem["type"] in ["branch", "way"]:
                 for side in ["left", "right"]:
-                    if not isinstance(elem[side + "_island"], float):
-                        id = int(elem[side + "_island"])
+                    id = u.Utils.get_number_from_label(elem[side + "_island"])
+                    if not id is None:
                         if not id in traffic_islands_edges:
                             traffic_islands_edges[id] = []
                         traffic_islands_edges[id].append(elem["id"])
-                
+        
         # then build traffic islands
         self.traffic_islands = []
         for eid in traffic_islands_edges:
             self.traffic_islands.append(c.TrafficIsland(traffic_islands_edges[eid], self.osm_input))
 
 
-    def toSvg(self, filename):
+    def toSvg(self, filename, only_reachable_islands = False):
         # TODO
         print("not yet implemented")
 
@@ -253,11 +268,11 @@ class CrossroadSchematization:
         return geopandas.GeoDataFrame(d, crs=2154)
 
 
-    def toGeojson(self, filename):
+    def toGeojson(self, filename, only_reachable_islands = False):
         df = self.toGDFInnerRegion()
         df = df.append(c.TurningSidewalk.toGDFSidewalks(self.merged_sidewalks))
         df = df.append(c.Branch.toGDFBranches(self.branches))
-        df = df.append(c.TrafficIsland.toGDFTrafficIslands(self.traffic_islands))
+        df = df.append(c.TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands))
         df = df.append(c.Crossing.toGDFCrossings(self.crossings))
         
         df.to_file(filename, driver='GeoJSON')
@@ -272,7 +287,8 @@ class CrossroadSchematization:
              inner_region = True,
              exact_islands = False,
              crossings = True,
-             islands = True):
+             islands = True,
+             only_reachable_islands = True):
         colors = [ 'r', 'y', 'b', 'g', "orange", 'purple', 'b']
 
         if inner_region:
@@ -315,8 +331,9 @@ class CrossroadSchematization:
 
         if exact_islands:
             for i, sw in enumerate(self.traffic_islands):
-                x, y = sw.get_linearring().xy
-                plt.plot(x, y, color = colors[i % len(colors)], linewidth=1)
+                if sw.is_reachable or not only_reachable_islands:
+                    x, y = sw.get_linearring().xy
+                    plt.plot(x, y, color = colors[i % len(colors)], linewidth=1)
 
         if crossings:
             for c in self.crossings:
@@ -328,7 +345,8 @@ class CrossroadSchematization:
 
         if islands:
             for sw in self.traffic_islands:
-                x, y = sw.center
-                plt.plot(x, y, "ok", markersize=12, linewidth=12)
+                if sw.is_reachable or not only_reachable_islands:
+                    x, y = sw.center
+                    plt.plot(x, y, "ok", markersize=12, linewidth=12)
 
         plt.show()

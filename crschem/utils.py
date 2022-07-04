@@ -1,6 +1,7 @@
 from numpy import linalg
 import shapely.ops
 import numpy as np
+import math
 
 
 class Utils:
@@ -34,4 +35,14 @@ class Utils:
             return x[::-1], y[::-1]
 
         return shapely.ops.transform(_reverse, geom)
+
+
+    def get_number_from_label(txt):
+        if txt is None:
+            return None
+        if isinstance(txt, str):
+            return int(txt)
+        if math.isnan(txt):
+            return None
+        return int(txt)
 

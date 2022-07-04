@@ -231,13 +231,13 @@ class TrafficIsland:
 
     def build_polygon(self):
 
-        ledges = copy.copy(self.edgelist)
+        ledges = copy.deepcopy(self.edgelist)
         if len(self.edgelist) == 0:
             self.polygon = []
             return
 
         self.polygon = ledges.pop()
-
+        
         reverse = False
         while len(ledges) != 0:
             # find next element in ledges
@@ -268,8 +268,14 @@ class TrafficIsland:
 
     def compute_generalization(self, crossings):
         local_crossings = [self.osm_input.nodes[c] for c in crossings if c in self.polygon]
-        xs = [c["x"] for c in local_crossings]
-        ys = [c["y"] for c in local_crossings]
+        if len(local_crossings) != 0:
+            l = local_crossings
+            self.is_reachable = True
+        else:
+            l = [self.osm_input.nodes[x] for x in self.polygon]
+            self.is_reachable = False
+        xs = [c["x"] for c in l]
+        ys = [c["y"] for c in l]
         self.center = (sum(xs) / len(xs), sum(ys) / len(ys))
         # TODO: compute supplementary edges if some of points of the polygons are far from 
         # this center
@@ -279,13 +285,14 @@ class TrafficIsland:
         return Point(self.center)
 
 
-    def toGDFTrafficIslands(traffic_islands):
+    def toGDFTrafficIslands(traffic_islands, only_reachable = True):
         d = {'type': [], 'osm_id': [], 'geometry': []}
 
         for t in traffic_islands:
-            d["type"].append("traffic_island")
-            d["osm_id"].append(";".join(map(str, t.polygon)))
-            d["geometry"].append(t.getGeometry())
+            if t.is_reachable or not only_reachable:
+                d["type"].append("traffic_island")
+                d["osm_id"].append(";".join(map(str, t.polygon)))
+                d["geometry"].append(t.getGeometry())
 
         return geopandas.GeoDataFrame(d, crs=2154)
 
