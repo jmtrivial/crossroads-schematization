@@ -35,7 +35,7 @@ class Linearization:
 
     def discretize_polyline(self, polyline):
         # exponential interpolation, starting from 1 meter
-        return LineString([polyline.interpolate(x) for x in self.exponential_coordinates(1, polyline.length)])
+        return LineString([polyline.interpolate(x) for x in self.exponential_coordinates(1, min(polyline.length, self.length))])
 
 
     def compute_direction_line(self, polyline):
