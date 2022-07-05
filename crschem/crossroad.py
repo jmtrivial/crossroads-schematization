@@ -341,7 +341,21 @@ class Crossing:
             return math.atan2(vectors[0][1], vectors[0][0])
         elif len(vectors) == 2:
             return math.atan2(vectors[0][1] - vectors[1][1], vectors[0][0] - vectors[1][0])
+        elif len(vectors) == 3:
+            # compute the orientations (in gradient) and sort them
+            orientations = sorted([math.atan2(x[1], x[0]) for x in vectors])
+            # compute the difference between consecutive orientations
+            diff = [o[1] - o[0] for o in zip(orientations, orientations[1:] + orientations[:1])]
+            diff = [ o + 2 * math.pi if o < 0 else o for o in diff]
+            # identify the pair of branches with the smallest difference
+            branchID1 = diff.index(min(diff))
+            branchID2 = (branchID1 + 1) % len(vectors)
+            # identify the other one
+            otherBranchID = (branchID2 + 1) % len(vectors)
+            # compute a mean of the global orientation, considering the other branch as an opposite one
+            return u.Utils.angle_mean(u.Utils.angle_mean(orientations[branchID1], orientations[branchID2]), orientations[otherBranchID] + math.pi)
         else:
+            print(vectors, [math.atan2(x[1], x[0]) for x in vectors])
             print("Error: bad number of edges to compute a direction", len(vectors))
 
     def compute_orthogonal_orientation(self, nodes):

@@ -9,7 +9,7 @@ class Utils:
     def is_roadway_edge(osm_edge):
         if not "highway" in osm_edge:
             return False
-        with_cars = ["motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "service"]
+        with_cars = ["motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "service", "living_street"]
         return osm_edge["highway"] in with_cars + [ w + "_link" for w in with_cars]
 
 
@@ -46,3 +46,22 @@ class Utils:
             return None
         return int(txt)
 
+
+    def angle_modulo(a):
+        if a < 0:
+            return angle_modulo(a + 2 * math.pi)
+        elif a > 2 * math.pi:
+            return angle_modulo(a - 2 * math.pi)
+        else:
+            return a
+
+
+    def angle_mean(a1, a2):
+        a1 = Utils.angle_modulo(a1)
+        a2 = Utils.angle_modulo(a2)
+
+        m1 = (a1 + a2) / 2
+        if m1 > math.pi:
+            return m1 - math.pi
+        else:
+            return m1

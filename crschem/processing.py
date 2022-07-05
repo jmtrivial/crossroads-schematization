@@ -17,7 +17,7 @@ class Linearization:
         polydisbranch = self.discretize_polyline(polyline)
         polydisbranchcoords = np.asarray(polydisbranch.coords)
 
-        # compute a PCA and deduce a direction line
+        # compute a a direction line
         line = self.compute_direction_line(polydisbranchcoords)
 
         # project last point on this line
