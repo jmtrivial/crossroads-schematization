@@ -8,7 +8,6 @@ import geopandas
 import re
 import matplotlib.pyplot as plt
 
-
 from . import utils as u
 from . import processing as p
 from . import crossroad as c
