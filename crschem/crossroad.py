@@ -155,7 +155,7 @@ class TurningSidewalk:
 
         self.build_simple_turn()
 
-        if self.way.is_empty or self.is_intersecting_osm():
+        if self.way is None or self.way.is_empty or self.is_intersecting_osm():
             self.build_beveled_turn()
 
 
@@ -171,11 +171,24 @@ class TurningSidewalk:
         return self.str_sidewalks[0].get_intersection(self.str_sidewalks[1])
 
 
+    def is_before_edge(edge, node):
+        v1 = (edge[1][0] - edge[0][0], edge[1][1] - edge[0][1])
+        v2 = (node.x - edge[0][0], node.y - edge[0][1])
+        v1 /= np.linalg.norm(v1)
+        v2 /= np.linalg.norm(v2)
+        a = np.dot(v1, v2)
+        return a < 0
+
+
     def build_simple_turn(self):
         sw1 = np.asarray(self.str_sidewalks[0].edge.coords)
         sw2 = np.asarray(self.str_sidewalks[1].edge.coords)
         intersection = self.get_intersection()
-        self.way = LineString([sw1[1], intersection, sw2[1]])
+        if TurningSidewalk.is_before_edge(self.str_sidewalks[0].edge.coords, intersection) and \
+           TurningSidewalk.is_before_edge(self.str_sidewalks[1].edge.coords, intersection):
+            self.way = LineString([sw1[1], intersection, sw2[1]])
+        else:
+            self.way = None
 
     def is_intersecting_osm(self):
         for n1 in self.osm_input:
