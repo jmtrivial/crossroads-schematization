@@ -317,14 +317,18 @@ class Crossing:
         footways = self.get_adjacent_footways_nodes()
         if len(footways) != 0:
             self.bearing = self.compute_parallel_orientation(footways)
+            self.bearing_confidence = False
         else:
             roadways = self.get_adjacent_roadways_nodes()
             if len(roadways) == 0:
                 print("Error: no adjacent road")
                 for x in self.osm_input[self.node_id]:
                     print(" ", self.osm_input[self.node_id][x][0])
+                self.bearing_confidence = Fakse
+                self.bearing = 0
             else:
                 self.bearing = self.compute_orthogonal_orientation(roadways)
+                self.bearing_confidence = True
 
 
     def get_adjacent_roadways_nodes(self):
@@ -395,6 +399,7 @@ class Crossing:
             c = crossings[cid]
             d["type"].append("crossing")
             d["orientation"].append(c.bearing)
+            d["orientation_confidence"].append(c.bearing_confidence)
             d["osm_id"].append(c.node_id)
             d["geometry"].append(c.getGeometry())
 
