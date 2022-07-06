@@ -49,6 +49,7 @@ group_preview = parser.add_argument_group("Preview options", "Parameters used by
 group_preview.add_argument('--osm', help='display OpenStreetMap network', action='store_true')
 group_preview.add_argument('--linear-ways', help='display linear ways', action='store_true')
 group_preview.add_argument('--branches', help='display branches', action='store_true')
+group_preview.add_argument('--sidewalks-on-branches', help='display sidewalks only on branches', action='store_true')
 
 args = parser.parse_args()
 
@@ -124,7 +125,8 @@ try:
 
     if args.display_preview or args.display_all:
         crschem.show(only_reachable_islands=args.only_reachable, osm_graph=args.osm,
-                     linear_ways=args.linear_ways, branches=args.branches)
+                     linear_ways=args.linear_ways, branches=args.branches,
+                     simple_sidewalks=args.sidewalks_on_branches, merged_sidewalks=not args.sidewalks_on_branches)
 
     if args.output:
         if len(args.output.filename) < 4:
