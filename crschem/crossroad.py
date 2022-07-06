@@ -373,8 +373,11 @@ class Crossing:
         return [u.Utils.normalized_vector(self.osm_input.nodes[self.node_id], self.osm_input.nodes[n]) for n in nodes]
 
     
-    def create_crossings(osm_input, cr_input):
-        return dict([(n, Crossing(n, osm_input)) for n in osm_input.nodes if osm_input.nodes[n]["type"] == "input" and Crossing.is_crossing(n, osm_input)])
+    def create_crossings(osm_input, cr_input, region = None):
+        return dict([(n, Crossing(n, osm_input)) for n in osm_input.nodes if 
+                      (region is None or region.contains(Point(osm_input.nodes[n]["x"], osm_input.nodes[n]["y"]))) and
+                      osm_input.nodes[n]["type"] == "input" and Crossing.is_crossing(n, osm_input)])
+
 
 
     def is_crossing(node, osm_input):

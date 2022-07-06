@@ -86,7 +86,7 @@ class CrossroadSchematization:
 
         # add pedestrian crossings
         print("Creating crossings")
-        self.crossings = c.Crossing.create_crossings(self.osm_input, self.cr_input)
+        self.crossings = c.Crossing.create_crossings(self.osm_input, self.cr_input, self.inner_region)
 
         # compute traffic island shape
         for island in self.traffic_islands:
