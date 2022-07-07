@@ -153,7 +153,9 @@ class CrossroadSchematization:
             for n2 in self.osm_input[n1]:
                 if n1 > n2 and self.osm_input[n1][n2][0]["type"] == "branch" and self.osm_input[n1][n2][0]["type_origin"] == "input":
                     bid, first_id, polybranch = e.process_to_linestring(self.osm_input, n1, n2)
-                    self.linear_ways[bid] = c.StraightWay(lz.process(polybranch), first_id, n1, n2, self.cr_input)
+                    self.linear_ways[bid] = c.StraightWay(lz.process(polybranch),
+                                                          first_id, n1, n2, self.cr_input,
+                                                          c.Crossing.is_crossing(first_id, self.osm_input))
 
 
     def build_branches(self):

@@ -11,17 +11,23 @@ from . import processing as p
 
 class StraightWay:
     
-    def __init__(self, edge, interior_node, n1, n2, cr_input):
+    def __init__(self, edge, interior_node, n1, n2, cr_input, is_crossing_interior_node):
         self.edge = edge
         self.array = np.asarray(edge.coords)
         self.interior_node = interior_node
+        self.is_crossing_interior_node = is_crossing_interior_node
         self.n1 = n1
         self.n2 = n2
         self.cr_input = cr_input
         self.edge_tags = self.get_initial_branch_edge()
 
+
     def __str__(self):
         return str((self.edge, self.interior_node, (self.n1, self.n2)))
+
+
+    def is_crossing_inner_node(self):
+        return self.is_crossing_interior_node
 
     def get_initial_branch_edge(self):
         is_w = (self.cr_input["id"] == self.get_edge_id()) | (self.cr_input["id"] == self.get_edge_id_reverse())
@@ -104,11 +110,23 @@ class StraightWay:
 
 class StraightSidewalk:
 
-    def __init__(self, edge, description, same_orientation, side):
+    def __init__(self, edge, description, same_orientation, side, is_crossing_inner_node):
         self.edge = edge
         self.description = description
         self.same_orientation = same_orientation
         self.side = side
+        if is_crossing_inner_node:
+            # extends the sidewalk in the inner direction if the inner point is a crossing
+            self.extends_start()
+
+
+    def extends_start(self, length = 1):
+        edgecoords = np.asarray(self.edge.coords)
+        start = edgecoords[0]
+        end = edgecoords[1]
+        v = [end[0] - start[0], end[1] - start[1]]
+        v = v / linalg.norm(v)
+        self.edge = LineString([(self.edge.coords[0][0] - v[0] * length, self.edge.coords[0][1] - v[1] * length), self.edge.coords[1]])
 
 
     def sidewalk_id(self):
@@ -447,14 +465,14 @@ class Branch:
 
 
     def build_two_sidewalks(self, way, width, 
-                            oedge_left, so_left,
-                            oedge_right, so_right):
+                            oedge_left, so_left, is_crossing_inner_node_left,
+                            oedge_right, so_right, is_crossing_inner_node_right):
         # the shift corresponds to half the width of the street
         shift = width / 2
         
         # compute the two lines (one in each side)
-        return [StraightSidewalk(way.parallel_offset(shift, "left"), oedge_left, so_left, "left"), 
-                StraightSidewalk(u.Utils.reverse_geom(way.parallel_offset(shift, "right")), oedge_right, so_right, "right")]
+        return [StraightSidewalk(way.parallel_offset(shift, "left"), oedge_left, so_left, "left", is_crossing_inner_node_left), 
+                StraightSidewalk(u.Utils.reverse_geom(way.parallel_offset(shift, "right")), oedge_right, so_right, "right", is_crossing_inner_node_right)]
 
 
     def get_initial_branche_width(self):
@@ -480,8 +498,8 @@ class Branch:
             so = self.is_initial_edge_same_orientation(wbranches[0])
             self.middle_line = wbranches[0].edge
             self.sidewalks = self.build_two_sidewalks(self.middle_line, self.width, 
-                                                            wbranches[0].edge_tags, so,
-                                                            wbranches[0].edge_tags, so)
+                                                      wbranches[0].edge_tags, so, wbranches[0].is_crossing_inner_node(),
+                                                      wbranches[0].edge_tags, so, wbranches[0].is_crossing_inner_node())
         elif len(wbranches) == 2 and (wbranches[0].edge_tags["left_sidewalk"] != "" or wbranches[0].edge_tags["right_sidewalk"] != "") \
                 and (wbranches[1].edge_tags["left_sidewalk"] != "" or wbranches[1].edge_tags["right_sidewalk"] != ""):
             # first build a middle line
@@ -502,8 +520,8 @@ class Branch:
             if wbranches[order[0]].edge_tags["left_sidewalk"] == "":
                 order.reverse()
             self.sidewalks = self.build_two_sidewalks(self.middle_line, self.width,
-                                                            wbranches[order[0]].edge_tags, so[order[0]],
-                                                            wbranches[order[1]].edge_tags, so[order[1]])
+                                                            wbranches[order[0]].edge_tags, so[order[0]], wbranches[order[0]].is_crossing_inner_node(),
+                                                            wbranches[order[1]].edge_tags, so[order[1]], wbranches[order[1]].is_crossing_inner_node())
         else:
             print("Not supported configuration:", len(wbranches), "sidewalk on branch", bid)
 
