@@ -7,6 +7,7 @@ import itertools
 import geopandas
 import re
 import matplotlib.pyplot as plt
+import crseg.segmentation as cseg
 
 from . import utils as u
 from . import processing as p
@@ -37,12 +38,10 @@ class CrossroadSchematization:
                  osm_unoriented = None,
                  osm_buffer_size_meters = 200, 
                  distance_kerb_footway = 0.5,
-                 white_space_meter = 1.5,
-                 osm_buffer_for_bevel = 1):
+                 white_space_meter = 1.5):
         self.osm_buffer_size_meters = osm_buffer_size_meters
         self.distance_kerb_footway = distance_kerb_footway
         self.white_space_meter = white_space_meter
-        self.osm_buffer_for_bevel = osm_buffer_for_bevel
         self.cr_input = cr_input
 
         self.load_osm(osm_oriented, osm_unoriented)
@@ -113,7 +112,7 @@ class CrossroadSchematization:
                                                                    truncate_by_edge=True, 
                                                                    simplify=False)
         else:
-            self.osm_input_oriented = osm_oriented
+            self.osm_input_oriented = cseg.Segmentation.prepare_network(copy.deepcopy(osm_oriented), remove_footways=False)
 
         # project to Lambert93 (France) for a metric approximation
         self.osm_input_oriented = osmnx.projection.project_graph(self.osm_input_oriented, to_crs = "EPSG:2154")
@@ -141,6 +140,21 @@ class CrossroadSchematization:
                 self.osm_input.nodes[ids[1]]["type"] = "input"
 
 
+    def is_boundary_node(self, node):
+        for n in self.osm_input[node]:
+            if self.osm_input[node][n][0]["type"] == "way":
+                return True
+        return False
+
+    def get_initial_edge_tags(self, osm_n1, osm_n2):
+        is_w = self.cr_input["id"] == str(osm_n1) + ";" + str(osm_n2)
+        filtered = self.cr_input[is_w]
+        if len(filtered) > 0:
+            return filtered.iloc[0, :].to_dict()
+        else:
+            return None
+
+
     def extend_ways(self):
         lz = p.Linearization()
         e = p.Expander()
@@ -149,13 +163,18 @@ class CrossroadSchematization:
         # compute for each way[type=branch] its extension
         # and fit one long edge on each polyline
         self.linear_ways = {}
-        for n1 in self.osm_input:
-            for n2 in self.osm_input[n1]:
-                if n1 > n2 and self.osm_input[n1][n2][0]["type"] == "branch" and self.osm_input[n1][n2][0]["type_origin"] == "input":
-                    bid, first_id, polybranch = e.process_to_linestring(self.osm_input, n1, n2)
-                    self.linear_ways[bid] = c.StraightWay(lz.process(polybranch),
-                                                          first_id, n1, n2, self.cr_input,
-                                                          c.Crossing.is_crossing(first_id, self.osm_input))
+        for index, elem in self.cr_input.iterrows():
+            if elem["type"] == "branch":
+                ids = list(map(int, elem["id"].split(";")))
+                osm_n1 = ids[0] # first id in the OSM direction
+                osm_n2 = ids[1] # last id in the OSM direction
+                n1 = osm_n1 if self.is_boundary_node(osm_n1) else osm_n2
+                n2 = osm_n2 if n1 == osm_n1 else osm_n1
+                bid, polybranch = e.process_to_linestring(self.osm_input, n1, n2)
+                self.linear_ways[bid] = c.StraightWay(n1, n2, lz.process(polybranch),
+                                                      osm_n1 == n1, 
+                                                      self.get_initial_edge_tags(osm_n1, osm_n2),
+                                                      c.Crossing.is_crossing(n1, self.osm_input))
 
 
     def build_branches(self):
@@ -206,7 +225,7 @@ class CrossroadSchematization:
         self.merged_sidewalks = []
 
         for sid in original_sidewalks_ids:
-            self.merged_sidewalks.append(c.TurningSidewalk(self.get_sidewalks_by_id(sid), self.osm_input, self.osm_buffer_for_bevel))
+            self.merged_sidewalks.append(c.TurningSidewalk(self.get_sidewalks_by_id(sid), self.osm_input, self.distance_kerb_footway))
 
 
     def build_inner_region(self):

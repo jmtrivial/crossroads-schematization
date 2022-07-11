@@ -67,7 +67,7 @@ else:
     print("Loading data from OpenStreetMap")
     ox.settings.use_cache = True
     ox.settings.useful_tags_node = list(set(ox.settings.useful_tags_node + cs.CrossroadSchematization.node_tags_to_keep))
-    G_init = cru.Util.get_osm_data(latitude, longitude, 200, args.overpass)
+    G_init = cru.Util.get_osm_data(latitude, longitude, 200, args.overpass)#, ["cycleway", "cycleway:right", "cycleway:left", "psv"])
 
     # segment intersection(from https://github.com/jmtrivial/crossroads-segmentation)
     print("Segmenting intersection")
@@ -75,6 +75,7 @@ else:
     G = cseg.Segmentation.prepare_network(deepcopy(G_init))
     # build an undirected version of the graph
     undirected_G = ox.utils_graph.get_undirected(G)
+    
     # segment it using topology and semantic
     seg = cseg.Segmentation(undirected_G, C0 = 2, C1 = 2, C2 = 4, max_cycle_elements = 10)
     seg.process()

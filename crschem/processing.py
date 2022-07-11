@@ -71,7 +71,7 @@ class Expander:
     def process_to_linestring(self, G, n1, n2):
         bid = self.bid
         polyline = self.process(G, n1, n2)[1]
-        return bid, polyline[0], Expander.convert_to_linestring(G, polyline)
+        return bid, Expander.convert_to_linestring(G, polyline)
 
 
     def convert_to_linestring(G, polyline):
@@ -118,10 +118,7 @@ class Expander:
         n3 = Expander.find_next_edge(G, n1, n2)
         # if not found, we reverse the edge and try to build an extension from the other side
         if n3 == None:
-            if first:
-                return self.extend_branch(G, n2, n1, False)
-            else:
-                return [n1, n2]
+            return [n1, n2]
         else:
             # if found, we propagate the extension
             G[n2][n3][0]["type"] = G[n1][n2][0]["type"]

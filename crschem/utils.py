@@ -1,4 +1,5 @@
 from numpy import linalg
+from shapely.geometry import LineString
 import shapely.ops
 import numpy as np
 import math
@@ -20,7 +21,10 @@ class Utils:
 
 
     def vector(node1, node2):
-        return [node2["x"] - node1["x"], node2["y"] - node1["y"]]
+        if isinstance(node1, list) or isinstance(node1, tuple):
+            return [node2[0] - node1[0], node2[1] - node1[1]]
+        else:
+            return [node2["x"] - node1["x"], node2["y"] - node1["y"]]
 
 
     def normalized_vector(node1, node2):
@@ -65,3 +69,56 @@ class Utils:
             return m1 - math.pi
         else:
             return m1
+
+    
+    def get_buffered_osm(osm, supplementary_width):
+
+        regions = []
+        for n1 in osm:
+            for n2 in osm[n1]:
+                edge = osm[n1][n2][0]
+                if Utils.is_roadway_edge(edge):
+                    p1 = osm.nodes[n1]
+                    p2 = osm.nodes[n2]
+                    e = LineString([[p1["x"], p1["y"]], [p2["x"], p2["y"]]]).buffer((Utils.evaluate_width_way(edge) + supplementary_width) / 2)
+                    regions.append(e)
+        return shapely.ops.unary_union(regions)
+
+    def evaluate_width_way(gEdge):
+        if "width" in gEdge and not re.match(r'^-?\d+(?:\.\d+)$', gEdge["width"]) is None:
+            return float(gEdge["width"])
+        elif "lanes" in gEdge:
+            nb = int(gEdge["lanes"])
+        else:
+            if "oneway" in gEdge and gEdge["oneway"]:
+                nb = 1
+            else:
+                nb = 2
+        
+        if "highway" in gEdge:
+            if gEdge["highway"] in ["motorway", "trunk"]:
+                width = 3.5
+            elif gEdge["highway"] in ["primary"]:
+                width = 3
+            elif gEdge["highway"] in ["secondary"]:
+                width = 3
+            elif gEdge["highway"] in ["service"]:
+                width = 2.25
+            else:
+                width = 2.75
+        else:
+            width = 3
+        
+        result = 0
+        if ("cycleway" in gEdge and gEdge["cycleway"] == "track") or \
+            ("cycleway:left" in gEdge and gEdge["cycleway:left"] == "track") or \
+            ("cycleway:right" in gEdge and gEdge["cycleway:right"] == "track"):
+            nb += 1 # ~ COVID tracks
+        if ("cycleway:right" in gEdge and gEdge["cycleway:right"] == "lane") or \
+           ("cycleway:left" in gEdge and gEdge["cycleway:left"] == "lane"):
+            result += 1 # one meter per cycle lane
+
+
+        result += nb * width
+
+        return result

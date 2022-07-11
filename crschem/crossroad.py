@@ -4,6 +4,7 @@ import numpy as np
 from numpy import linalg
 import copy
 import math
+import shapely.ops
 
 
 from . import utils as u
@@ -11,41 +12,39 @@ from . import processing as p
 
 class StraightWay:
     
-    def __init__(self, edge, interior_node, n1, n2, cr_input, is_crossing_interior_node):
-        self.edge = edge
-        self.array = np.asarray(edge.coords)
-        self.interior_node = interior_node
-        self.is_crossing_interior_node = is_crossing_interior_node
+    # parameters (and attributes)
+    # - n1 is the interior node, n2 is the exterior node  (centripetal orientation)
+    # - edge: a straight line starting from n1 and oriented as the way in a significant 
+    # and predefined direction.
+    # - same_osm_orientation: boolean (is the OSM orientation similar)
+    # - edge_tags: initial branch tags of the edge
+    # - is_crossing_interior_node: return true if the first node is a crossing
+    def __init__(self, n1, n2, edge, same_osm_orientation, edge_tags, is_crossing_interior_node):
         self.n1 = n1
         self.n2 = n2
-        self.cr_input = cr_input
-        self.edge_tags = self.get_initial_branch_edge()
+        self.edge = edge
+        self.array = np.asarray(edge.coords)
+        self.same_osm_orientation = same_osm_orientation
+        self.edge_tags = edge_tags
+        self.is_crossing_interior_node = is_crossing_interior_node
+
 
 
     def __str__(self):
-        return str((self.edge, self.interior_node, (self.n1, self.n2)))
+        return str(((self.n1, self.n2), self.edge, self.same_osm_orientation))
 
 
     def is_crossing_inner_node(self):
         return self.is_crossing_interior_node
 
-    def get_initial_branch_edge(self):
-        is_w = (self.cr_input["id"] == self.get_edge_id()) | (self.cr_input["id"] == self.get_edge_id_reverse())
-        filtered = self.cr_input[is_w]
-        if len(filtered) > 0:
-            return filtered.iloc[0, :].to_dict()
-        else:
-            return None
         
     def point(self, i):
         return Point(self.array[i])
     
     def get_initial_edge_id(self):
-        if self.interior_node == self.n1:
+        if self.same_osm_orientation:
             return self.get_edge_id()
         else:
-            if self.interior_node != self.n2:
-                print("WRONG CONFIGURATION !!!")
             return self.get_edge_id_reverse()
 
 
@@ -68,44 +67,7 @@ class StraightWay:
     
     # basic evaluation of the width using number of lanes, and type of highway
     def evaluate_width_way(self, osm_graph):
-        gEdge = osm_graph[self.n1][self.n2][0]
-        if "width" in gEdge and not re.match(r'^-?\d+(?:\.\d+)$', gEdge["width"]) is None:
-            return float(gEdge["width"])
-        elif "lanes" in gEdge:
-            nb = int(gEdge["lanes"])
-        else:
-            if "oneway" in gEdge and gEdge["oneway"]:
-                nb = 1
-            else:
-                nb = 2
-        
-        if "highway" in gEdge:
-            if gEdge["highway"] in ["motorway", "trunk"]:
-                width = 3.5
-            elif gEdge["highway"] in ["primary"]:
-                width = 3
-            elif gEdge["highway"] in ["secondary"]:
-                width = 3
-            elif gEdge["highway"] in ["service"]:
-                width = 2.25
-            else:
-                width = 2.75
-        else:
-            width = 3
-        
-        result = 0
-        if ("cycleway" in gEdge and gEdge["cycleway"] == "track") or \
-            ("cycleway:left" in gEdge and gEdge["cycleway:left"] == "track") or \
-            ("cycleway:right" in gEdge and gEdge["cycleway:right"] == "track"):
-            nb += 1 # ~ COVID tracks
-        if ("cycleway:right" in gEdge and gEdge["cycleway:right"] == "lane") or \
-           ("cycleway:left" in gEdge and gEdge["cycleway:left"] == "lane"):
-            result += 1 # one meter per cycle lane
-
-
-        result += nb * width
-
-        return result
+        return u.Utils.evaluate_width_way(osm_graph[self.n1][self.n2][0])
 
 
 class StraightSidewalk:
@@ -118,6 +80,10 @@ class StraightSidewalk:
         if is_crossing_inner_node:
             # extends the sidewalk in the inner direction if the inner point is a crossing
             self.extends_start()
+
+
+    def __str__(self):
+        return str(self.edge) + "; side: " + str(self.side) + "; same orientation: " + str(self.same_orientation)
 
 
     def extends_start(self, length = 1):
@@ -164,8 +130,8 @@ class StraightSidewalk:
 
 class TurningSidewalk:
 
-    def __init__(self, str_sidewalks, osm_input, osm_buffer_for_bevel = 2):
-        self.osm_buffer_for_bevel = osm_buffer_for_bevel
+    def __init__(self, str_sidewalks, osm_input, distance_kerb_footway):
+        self.distance_kerb_footway = distance_kerb_footway
 
         self.str_sidewalks = str_sidewalks
         
@@ -173,8 +139,35 @@ class TurningSidewalk:
 
         self.build_simple_turn()
 
-        if self.way is None or self.way.is_empty or self.is_intersecting_osm():
+        if self.way is None or self.way.is_empty:
             self.build_beveled_turn()
+        else:
+            if self.is_flexible_way:
+                self.adjust_intersection()
+
+
+    def get_middle_bevel(self):
+        p1 = self.str_sidewalks[0].edge.coords[0]
+        p2 = self.str_sidewalks[1].edge.coords[0]
+        return [(x + y) / 2 for x, y in zip(p1, p2)]
+
+
+    def adjust_intersection(self):
+        middle_sw = self.way.coords[1]
+        buffered_osm = u.Utils.get_buffered_osm(self.osm_input, self.distance_kerb_footway)
+
+        # first check for basic interesction
+        middle_bevel = Point(self.get_middle_bevel())
+        if buffered_osm.intersects(middle_bevel):
+            self.build_beveled_turn()
+        else:
+            # otherwise build a more complex turn
+            edge = LineString((middle_bevel, middle_sw))
+            
+            elements = buffered_osm.boundary.intersection(edge)
+            if not elements.is_empty:
+                nearest = shapely.ops.nearest_points(middle_bevel, elements)
+                self.build_beveled_turn(nearest[1])
 
 
     def branch_names(self):
@@ -189,7 +182,16 @@ class TurningSidewalk:
         return self.str_sidewalks[0].get_intersection(self.str_sidewalks[1])
 
 
-    def is_before_edge(edge, node):
+    def is_before_end_of_edge(edge, node):
+        v1 = (edge[1][0] - edge[0][0], edge[1][1] - edge[0][1])
+        v2 = (node.x - edge[1][0], node.y - edge[1][1])
+        v1 /= np.linalg.norm(v1)
+        v2 /= np.linalg.norm(v2)
+        a = np.dot(v1, v2)
+        return a < 0
+
+
+    def is_before_begin_of_edge(edge, node):
         v1 = (edge[1][0] - edge[0][0], edge[1][1] - edge[0][1])
         v2 = (node.x - edge[0][0], node.y - edge[0][1])
         v1 /= np.linalg.norm(v1)
@@ -201,29 +203,24 @@ class TurningSidewalk:
     def build_simple_turn(self):
         sw1 = np.asarray(self.str_sidewalks[0].edge.coords)
         sw2 = np.asarray(self.str_sidewalks[1].edge.coords)
-        intersection = self.get_intersection()
-        if TurningSidewalk.is_before_edge(self.str_sidewalks[0].edge.coords, intersection) and \
-           TurningSidewalk.is_before_edge(self.str_sidewalks[1].edge.coords, intersection):
-            self.way = LineString([sw1[1], intersection, sw2[1]])
+        self.intersection = self.get_intersection()
+        if not self.intersection.is_empty and (TurningSidewalk.is_before_end_of_edge(self.str_sidewalks[0].edge.coords, self.intersection) and \
+           TurningSidewalk.is_before_end_of_edge(self.str_sidewalks[1].edge.coords, self.intersection)) :
+            self.way = LineString([sw1[1], self.intersection, sw2[1]])
+            self.is_flexible_way = TurningSidewalk.is_before_begin_of_edge(self.str_sidewalks[0].edge.coords, self.intersection) and \
+                                    TurningSidewalk.is_before_begin_of_edge(self.str_sidewalks[1].edge.coords, self.intersection)
         else:
             self.way = None
+            self.is_flexible_way = True
 
-    def is_intersecting_osm(self):
-        for n1 in self.osm_input:
-            for n2 in self.osm_input[n1]:
-                if u.Utils.is_roadway_edge(self.osm_input[n1][n2][0]):
-                    p1 = self.osm_input.nodes[n1]
-                    p2 = self.osm_input.nodes[n2]
-                    e = LineString([[p1["x"], p1["y"]], [p2["x"], p2["y"]]]).buffer(self.osm_buffer_for_bevel)
-                    if not e.intersection(self.way).is_empty:
-                        return True
 
-        return False
-
-    def build_beveled_turn(self):
+    def build_beveled_turn(self, middle = None):
         sw1 = np.asarray(self.str_sidewalks[0].edge.coords)
         sw2 = np.asarray(self.str_sidewalks[1].edge.coords)
-        self.way = LineString(np.concatenate((sw1[::-1], sw2)))
+        if middle is None:
+            self.way = LineString(np.concatenate((sw1[::-1], sw2)))
+        else:
+            self.way = LineString(np.concatenate((sw1[::-1], [middle.coords[0]], sw2)))
 
 
     def as_array(self):
@@ -458,12 +455,6 @@ class Branch:
         return len(self.ways)
 
 
-    def is_initial_edge_same_orientation(self, w):
-        is_w = self.cr_input["id"] == w.get_initial_edge_id()
-        filtered = self.cr_input[is_w]
-        return len(filtered) > 0
-
-
     def build_two_sidewalks(self, way, width, 
                             oedge_left, so_left, is_crossing_inner_node_left,
                             oedge_right, so_right, is_crossing_inner_node_right):
@@ -472,9 +463,10 @@ class Branch:
         
         # compute the two lines (one in each side)
         return [StraightSidewalk(way.parallel_offset(shift, "left"), oedge_left, so_left, "left", is_crossing_inner_node_left), 
-                StraightSidewalk(u.Utils.reverse_geom(way.parallel_offset(shift, "right")), oedge_right, so_right, "right", is_crossing_inner_node_right)]
+                StraightSidewalk(way.parallel_offset(shift, "right"), oedge_right, so_right, "right", is_crossing_inner_node_right)]
 
 
+    # maximum distance between two extremity points of the ways
     def get_initial_branche_width(self):
         edges = []
         distance = 0
@@ -493,9 +485,10 @@ class Branch:
 
     def get_sidewalks(self):
         wbranches = self.ways
+
         if len(wbranches) == 1 and wbranches[0].edge_tags["left_sidewalk"] != "" and wbranches[0].edge_tags["right_sidewalk"] != "":
             self.width = wbranches[0].evaluate_width_way(self.osm_input) + 2 * self.distance_kerb_footway
-            so = self.is_initial_edge_same_orientation(wbranches[0])
+            so = wbranches[0].same_osm_orientation
             self.middle_line = wbranches[0].edge
             self.sidewalks = self.build_two_sidewalks(self.middle_line, self.width, 
                                                       wbranches[0].edge_tags, so, wbranches[0].is_crossing_inner_node(),
@@ -511,14 +504,14 @@ class Branch:
                     self.get_initial_branche_width() + 2 * self.distance_kerb_footway
 
             # evaluate orientation of the initial edges
-            so = [self.is_initial_edge_same_orientation(wbranches[0]), 
-                    self.is_initial_edge_same_orientation(wbranches[1])]
+            so = [wbranches[0].same_osm_orientation, wbranches[1].same_osm_orientation]
             # build two lines associated to the middle line (wrt correct direction)
             order = [0, 1]
-            if not so[0]:
+
+            if (so[0] and wbranches[0].edge_tags["left_sidewalk"] == "") or \
+               (not so[0] and wbranches[0].edge_tags["right_sidewalk"] == ""):
                 order.reverse()
-            if wbranches[order[0]].edge_tags["left_sidewalk"] == "":
-                order.reverse()
+
             self.sidewalks = self.build_two_sidewalks(self.middle_line, self.width,
                                                             wbranches[order[0]].edge_tags, so[order[0]], wbranches[order[0]].is_crossing_inner_node(),
                                                             wbranches[order[1]].edge_tags, so[order[1]], wbranches[order[1]].is_crossing_inner_node())
