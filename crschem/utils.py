@@ -1,5 +1,5 @@
 from numpy import linalg
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Point
 import shapely.ops
 import numpy as np
 import math
@@ -20,11 +20,26 @@ class Utils:
         return False
 
 
-    def vector(node1, node2):
-        if isinstance(node1, list) or isinstance(node1, tuple):
-            return [node2[0] - node1[0], node2[1] - node1[1]]
+    def to_array(node):
+        if isinstance(node, list) or isinstance(node, tuple):
+            return node
+        elif isinstance(node, Point):
+            return [node.x, node.y]
         else:
-            return [node2["x"] - node1["x"], node2["y"] - node1["y"]]
+            return [node["x"], node["y"]]
+
+    # (n1 -> n2)
+    def vector(n1, n2):
+        node1 = Utils.to_array(n1)
+        node2 = Utils.to_array(n2)
+
+        return [node2[0] - node1[0], node2[1] - node1[1]]
+
+
+    def norm_and_dot(v1, v2):
+        av1 = v1 / np.linalg.norm(v1)
+        av2 = v2 / np.linalg.norm(v2)
+        return np.dot(av1, av2)
 
 
     def normalized_vector(node1, node2):
@@ -83,6 +98,7 @@ class Utils:
                     e = LineString([[p1["x"], p1["y"]], [p2["x"], p2["y"]]]).buffer((Utils.evaluate_width_way(edge) + supplementary_width) / 2)
                     regions.append(e)
         return shapely.ops.unary_union(regions)
+
 
     def evaluate_width_way(gEdge):
         if "width" in gEdge and not re.match(r'^-?\d+(?:\.\d+)$', gEdge["width"]) is None:

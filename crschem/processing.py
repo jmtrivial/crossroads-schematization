@@ -2,6 +2,8 @@ from shapely.geometry import Point, LineString, MultiLineString, LinearRing, Pol
 import numpy as np
 from numpy import linalg
 
+from . import utils as u
+
 
 class Linearization:
     
@@ -103,12 +105,20 @@ class Expander:
 
     def find_next_edge(G, n1, n2):
 
+        possible_next = []
         for n3 in G[n2]:
             if n3 != n1 and G[n2][n3][0]["type"] == "unknown":
                 if Expander.is_similar_edge(G, [n1, n2], [n2, n3]):
-                    return n3
-
-        return None
+                    possible_next.append(n3)
+        
+        if len(possible_next) == 0:
+            return None
+        elif len(possible_next) == 1:
+            return possible_next[0]
+        else:
+            angles = sorted([(n, u.Utils.norm_and_dot(u.Utils.vector(G.nodes[n1], G.nodes[n2]), 
+                                                      u.Utils.vector(G.nodes[n1], G.nodes[n]))) for n in possible_next], key=lambda x: x[1])
+            return angles[-1][0]
 
 
     def extend_branch(self, G, n1, n2, first = True):

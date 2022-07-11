@@ -171,7 +171,7 @@ class CrossroadSchematization:
         for lid1 in self.linear_ways:
             for lid2 in self.linear_ways:
                 if lid1 > lid2:
-                    self.linear_ways[lid1].adjust_by_coherency(self.linear_ways[lid2])
+                    self.linear_ways[lid1].adjust_by_coherency(self.linear_ways[lid2], self.osm_input)
 
         # finally fit one long edge on each polyline
         for lid in self.linear_ways:

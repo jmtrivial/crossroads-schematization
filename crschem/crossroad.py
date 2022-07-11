@@ -36,15 +36,24 @@ class StraightWay:
         self.array = np.asarray(self.edge.coords)
 
 
-    def adjust_by_coherency(self, sw):
+    def sum_length(self, edges, G):
+        return sum([LineString([(G.nodes[e[0]]["x"], G.nodes[e[0]]["y"]),
+                                 (G.nodes[e[1]]["x"], G.nodes[e[1]]["y"])]).length for e in edges])
+
+
+    def adjust_by_coherency(self, sw, G):
         list1 = list(zip(sw.polybranch, sw.polybranch[1:]))
         list2 = list(zip(self.polybranch, self.polybranch[1:]))
         both = list(set(list1).intersection(list2))
         if len(both) != 0:
             common = [ e for e in list1 if e in both]
-            # TODO: not perfect if the common elements are not in a continuous section, but should not append
-            sw.polybranch = [e[0] for e in common] + [common[-1][1]]
-            self.polybranch = sw.polybranch
+            length1 = self.sum_length(list1, G)
+            lengthc = self.sum_length(common, G)
+            # replace only if this common part is a significative part of the polybranches
+            if lengthc > 0.8 * length1:
+                # TODO: not perfect if the common elements are not in a continuous section, but should not append
+                sw.polybranch = [e[0] for e in common] + [common[-1][1]]
+                self.polybranch = sw.polybranch
 
 
     def __str__(self):
@@ -209,21 +218,11 @@ class TurningSidewalk:
 
 
     def is_before_end_of_edge(edge, node):
-        v1 = (edge[1][0] - edge[0][0], edge[1][1] - edge[0][1])
-        v2 = (node.x - edge[1][0], node.y - edge[1][1])
-        v1 /= np.linalg.norm(v1)
-        v2 /= np.linalg.norm(v2)
-        a = np.dot(v1, v2)
-        return a < 0
+        return u.Utils.norm_and_dot(u.Utils.vector(edge[0], edge[1]), u.Utils.vector(edge[1], node)) < 0
 
 
     def is_before_begin_of_edge(edge, node):
-        v1 = (edge[1][0] - edge[0][0], edge[1][1] - edge[0][1])
-        v2 = (node.x - edge[0][0], node.y - edge[0][1])
-        v1 /= np.linalg.norm(v1)
-        v2 /= np.linalg.norm(v2)
-        a = np.dot(v1, v2)
-        return a < 0
+        return u.Utils.norm_and_dot(u.Utils.vector(edge[0], edge[1]), u.Utils.vector(edge[0], node)) < 0
 
 
     def build_simple_turn(self):
