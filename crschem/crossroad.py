@@ -37,6 +37,12 @@ class StraightWay:
     def is_crossing_inner_node(self):
         return self.is_crossing_interior_node
 
+
+    def has_sidewalk(self):
+        return self.edge_tags["left_sidewalk"] != "" or self.edge_tags["right_sidewalk"] != ""
+
+    def has_sidewalks_both_sides(self):
+        return self.edge_tags["left_sidewalk"] != "" and self.edge_tags["right_sidewalk"] != ""
         
     def point(self, i):
         return Point(self.array[i])
@@ -455,15 +461,22 @@ class Branch:
         return len(self.ways)
 
 
-    def build_two_sidewalks(self, way, width, 
-                            oedge_left, so_left, is_crossing_inner_node_left,
-                            oedge_right, so_right, is_crossing_inner_node_right):
+    def build_two_sidewalks(self):
+
         # the shift corresponds to half the width of the street
-        shift = width / 2
+        shift = self.width / 2
         
         # compute the two lines (one in each side)
-        return [StraightSidewalk(way.parallel_offset(shift, "left"), oedge_left, so_left, "left", is_crossing_inner_node_left), 
-                StraightSidewalk(way.parallel_offset(shift, "right"), oedge_right, so_right, "right", is_crossing_inner_node_right)]
+        return [StraightSidewalk(self.middle_line.parallel_offset(shift, "left"), 
+                                 self.sides[0].edge_tags,
+                                 self.sides[0].same_osm_orientation,
+                                 "left", 
+                                 self.sides[0].is_crossing_inner_node()), 
+                StraightSidewalk(self.middle_line.parallel_offset(shift, "right"),
+                                 self.sides[1].edge_tags,
+                                 self.sides[1].same_osm_orientation,
+                                 "right", 
+                                 self.sides[1].is_crossing_inner_node())]
 
 
     # maximum distance between two extremity points of the ways
@@ -483,40 +496,38 @@ class Branch:
 
         return distance
 
-    def get_sidewalks(self):
-        wbranches = self.ways
 
-        if len(wbranches) == 1 and wbranches[0].edge_tags["left_sidewalk"] != "" and wbranches[0].edge_tags["right_sidewalk"] != "":
-            self.width = wbranches[0].evaluate_width_way(self.osm_input) + 2 * self.distance_kerb_footway
-            so = wbranches[0].same_osm_orientation
-            self.middle_line = wbranches[0].edge
-            self.sidewalks = self.build_two_sidewalks(self.middle_line, self.width, 
-                                                      wbranches[0].edge_tags, so, wbranches[0].is_crossing_inner_node(),
-                                                      wbranches[0].edge_tags, so, wbranches[0].is_crossing_inner_node())
-        elif len(wbranches) == 2 and (wbranches[0].edge_tags["left_sidewalk"] != "" or wbranches[0].edge_tags["right_sidewalk"] != "") \
-                and (wbranches[1].edge_tags["left_sidewalk"] != "" or wbranches[1].edge_tags["right_sidewalk"] != ""):
-            # first build a middle line
-            self.middle_line = StraightWay.build_middle_line(wbranches[0], wbranches[1])
-
-            # then compute width of the street
-            self.width = wbranches[0].evaluate_width_way(self.osm_input) / 2 + \
-                    wbranches[1].evaluate_width_way(self.osm_input) / 2 + \
+    def build_middle_way(self):
+        if self.single_side:
+            self.middle_line = self.sides[0].edge
+        else:
+            self.middle_line = StraightWay.build_middle_line(self.sides[0], self.sides[1])
+            
+    
+    def compute_width(self):
+        self.width = self.sides[0].evaluate_width_way(self.osm_input) / 2 + \
+                    self.sides[1].evaluate_width_way(self.osm_input) / 2 + \
                     self.get_initial_branche_width() + 2 * self.distance_kerb_footway
 
-            # evaluate orientation of the initial edges
-            so = [wbranches[0].same_osm_orientation, wbranches[1].same_osm_orientation]
-            # build two lines associated to the middle line (wrt correct direction)
-            order = [0, 1]
+    def select_sidewalk_ways(self):
+        self.sides = [ w for w in self.ways if w.has_sidewalk()]
+        self.single_side = False
+        if len(self.sides) == 1 and self.sides[0].has_sidewalks_both_sides():
+            self.sides.append(self.sides[0])
+            self.single_side = True
 
-            if (so[0] and wbranches[0].edge_tags["left_sidewalk"] == "") or \
-               (not so[0] and wbranches[0].edge_tags["right_sidewalk"] == ""):
-                order.reverse()
+    def get_sidewalks(self):
 
-            self.sidewalks = self.build_two_sidewalks(self.middle_line, self.width,
-                                                            wbranches[order[0]].edge_tags, so[order[0]], wbranches[order[0]].is_crossing_inner_node(),
-                                                            wbranches[order[1]].edge_tags, so[order[1]], wbranches[order[1]].is_crossing_inner_node())
-        else:
-            print("Not supported configuration:", len(wbranches), "sidewalk on branch", bid)
+        self.select_sidewalk_ways()
+
+        if len(self.sides) != 2:
+            print("Not supported configuration:", len(self.sides), "sidewalk on branch", bid)
+
+        self.build_middle_way()
+
+        self.compute_width()
+
+        self.sidewalks = self.build_two_sidewalks()
 
         return self.sidewalks
 

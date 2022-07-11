@@ -184,7 +184,7 @@ class CrossroadSchematization:
         for wid in self.linear_ways:
             w = self.linear_ways[wid]
             e = w.edge_tags
-            if e is not None and (e["left_sidewalk"] != "" or e["right_sidewalk"] != ""):
+            if e is not None:
                 bname = e["name"]
                 if not bname in self.branches:
                     self.branches[bname] = c.Branch(bname, self.osm_input, self.cr_input, self.distance_kerb_footway)
