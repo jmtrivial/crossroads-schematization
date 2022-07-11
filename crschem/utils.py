@@ -118,7 +118,15 @@ class Utils:
            ("cycleway:left" in gEdge and gEdge["cycleway:left"] == "lane"):
             result += 1 # one meter per cycle lane
 
-
         result += nb * width
 
         return result
+
+
+    def get_initial_edge_tags(cr_input, osm_n1, osm_n2):
+        is_w = cr_input["id"] == str(osm_n1) + ";" + str(osm_n2)
+        filtered = cr_input[is_w]
+        if len(filtered) > 0:
+            return filtered.iloc[0, :].to_dict()
+        else:
+            return None

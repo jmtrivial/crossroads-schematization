@@ -10,24 +10,41 @@ import shapely.ops
 from . import utils as u
 from . import processing as p
 
+
 class StraightWay:
     
     # parameters (and attributes)
     # - n1 is the interior node, n2 is the exterior node  (centripetal orientation)
-    # - edge: a straight line starting from n1 and oriented as the way in a significant 
-    # and predefined direction.
+    # - polybranch: an extended path from n1, n2
+    # - edge_tags: tags from crdesc
     # - same_osm_orientation: boolean (is the OSM orientation similar)
-    # - edge_tags: initial branch tags of the edge
     # - is_crossing_interior_node: return true if the first node is a crossing
-    def __init__(self, n1, n2, edge, same_osm_orientation, edge_tags, is_crossing_interior_node):
+    def __init__(self, n1, n2, polybranch, edge_tags, same_osm_orientation, is_crossing_interior_node):
         self.n1 = n1
         self.n2 = n2
-        self.edge = edge
-        self.array = np.asarray(edge.coords)
+        self.polybranch = polybranch
+        self.edge = None
+        self.array = None
         self.same_osm_orientation = same_osm_orientation
         self.edge_tags = edge_tags
         self.is_crossing_interior_node = is_crossing_interior_node
+        self.lz = p.Linearization()
 
+
+    def compute_linear_edge(self, G):
+        self.edge = self.lz.process(p.Expander.convert_to_linestring(G, self.polybranch))
+        self.array = np.asarray(self.edge.coords)
+
+
+    def adjust_by_coherency(self, sw):
+        list1 = list(zip(sw.polybranch, sw.polybranch[1:]))
+        list2 = list(zip(self.polybranch, self.polybranch[1:]))
+        both = list(set(list1).intersection(list2))
+        if len(both) != 0:
+            common = [ e for e in list1 if e in both]
+            # TODO: not perfect if the common elements are not in a continuous section, but should not append
+            sw.polybranch = [e[0] for e in common] + [common[-1][1]]
+            self.polybranch = sw.polybranch
 
 
     def __str__(self):
@@ -41,12 +58,15 @@ class StraightWay:
     def has_sidewalk(self):
         return self.edge_tags["left_sidewalk"] != "" or self.edge_tags["right_sidewalk"] != ""
 
+
     def has_sidewalks_both_sides(self):
         return self.edge_tags["left_sidewalk"] != "" and self.edge_tags["right_sidewalk"] != ""
-        
+
+
     def point(self, i):
         return Point(self.array[i])
-    
+
+
     def get_initial_edge_id(self):
         if self.same_osm_orientation:
             return self.get_edge_id()
@@ -73,7 +93,7 @@ class StraightWay:
     
     # basic evaluation of the width using number of lanes, and type of highway
     def evaluate_width_way(self, osm_graph):
-        return u.Utils.evaluate_width_way(osm_graph[self.n1][self.n2][0])
+        return u.Utils.evaluate_width_way(osm_graph[self.polybranch[0]][self.polybranch[1]][0])
 
 
 class StraightSidewalk:

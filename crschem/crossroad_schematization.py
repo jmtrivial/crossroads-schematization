@@ -146,22 +146,12 @@ class CrossroadSchematization:
                 return True
         return False
 
-    def get_initial_edge_tags(self, osm_n1, osm_n2):
-        is_w = self.cr_input["id"] == str(osm_n1) + ";" + str(osm_n2)
-        filtered = self.cr_input[is_w]
-        if len(filtered) > 0:
-            return filtered.iloc[0, :].to_dict()
-        else:
-            return None
-
 
     def extend_ways(self):
-        lz = p.Linearization()
         e = p.Expander()
         print("Extending branches")
 
         # compute for each way[type=branch] its extension
-        # and fit one long edge on each polyline
         self.linear_ways = {}
         for index, elem in self.cr_input.iterrows():
             if elem["type"] == "branch":
@@ -170,11 +160,22 @@ class CrossroadSchematization:
                 osm_n2 = ids[1] # last id in the OSM direction
                 n1 = osm_n1 if self.is_boundary_node(osm_n1) else osm_n2
                 n2 = osm_n2 if n1 == osm_n1 else osm_n1
-                bid, polybranch = e.process_to_linestring(self.osm_input, n1, n2)
-                self.linear_ways[bid] = c.StraightWay(n1, n2, lz.process(polybranch),
-                                                      osm_n1 == n1, 
-                                                      self.get_initial_edge_tags(osm_n1, osm_n2),
+                bid, polybranch = e.process(self.osm_input, n1, n2)
+                self.linear_ways[bid] = c.StraightWay(n1, n2, polybranch,
+                                                      u.Utils.get_initial_edge_tags(self.cr_input, osm_n1, osm_n2),
+                                                      osm_n1 == n1,
                                                       c.Crossing.is_crossing(n1, self.osm_input))
+
+        # if two (or more) polybranches are intersecting, we remove from the polybranch all 
+        # non common elements, and tags are the one at the end of the path
+        for lid1 in self.linear_ways:
+            for lid2 in self.linear_ways:
+                if lid1 > lid2:
+                    self.linear_ways[lid1].adjust_by_coherency(self.linear_ways[lid2])
+
+        # finally fit one long edge on each polyline
+        for lid in self.linear_ways:
+            self.linear_ways[lid].compute_linear_edge(self.osm_input)
 
 
     def build_branches(self):
