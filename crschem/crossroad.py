@@ -522,12 +522,14 @@ class Branch:
 
         if len(self.sides) != 2:
             print("Not supported configuration:", len(self.sides), "sidewalk on branch", bid)
+            self.sidewalks = None
+        else:
 
-        self.build_middle_way()
+            self.build_middle_way()
 
-        self.compute_width()
+            self.compute_width()
 
-        self.sidewalks = self.build_two_sidewalks()
+            self.sidewalks = self.build_two_sidewalks()
 
         return self.sidewalks
 
