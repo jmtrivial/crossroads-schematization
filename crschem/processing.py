@@ -121,5 +121,4 @@ class Expander:
             return [n1, n2]
         else:
             # if found, we propagate the extension
-            G[n2][n3][0]["type"] = G[n1][n2][0]["type"]
             return [n1] + self.extend_branch(G, n2, n3, False)
