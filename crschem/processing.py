@@ -1,4 +1,5 @@
 from shapely.geometry import Point, LineString, MultiLineString, LinearRing, Polygon
+import shapely.ops
 import numpy as np
 from numpy import linalg
 
@@ -7,14 +8,13 @@ from . import utils as u
 
 class Linearization:
     
-    def __init__(self, length = 30):
-        self.exponential_coef = 1.2
+    def __init__(self, length=30, initial_step=1, exponential_coef=1.2):
+        self.exponential_coef = exponential_coef
         self.length = length
+        self.initial_step = initial_step
     
 
     def process(self, polyline):
-        #polyline = convert_to_linestring(G, polybranch)
-
         # discretize the polybranch following a density depending on the linear coordinate
         polydisbranch = self.discretize_polyline(polyline)
         polydisbranchcoords = np.asarray(polydisbranch.coords)
@@ -37,7 +37,7 @@ class Linearization:
 
     def discretize_polyline(self, polyline):
         # exponential interpolation, starting from 1 meter
-        return LineString([polyline.interpolate(x) for x in self.exponential_coordinates(1, min(polyline.length, self.length))])
+        return LineString([polyline.interpolate(x) for x in self.exponential_coordinates(self.initial_step, min(polyline.length, self.length))])
 
 
     def compute_direction_line(self, polyline):
@@ -51,7 +51,8 @@ class Linearization:
 
 
     def project_on_line(point, line):
-        return line.interpolate(line.project(point))
+        n = shapely.ops.nearest_points(point, line)
+        return n[0]
 
 
 class Expander:

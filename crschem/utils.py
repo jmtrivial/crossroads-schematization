@@ -3,7 +3,7 @@ from shapely.geometry import LineString, Point
 import shapely.ops
 import numpy as np
 import math
-
+import re
 
 class Utils:
 
@@ -41,10 +41,18 @@ class Utils:
         av2 = v2 / np.linalg.norm(v2)
         return np.dot(av1, av2)
 
-
+    # (n1 -> n2)
     def normalized_vector(node1, node2):
         v = Utils.vector(node1, node2)
-        return v / linalg.norm(np.array(v), 2)
+        norm = linalg.norm(np.array(v), 2)
+        if math.isnan(norm) or norm == 0:
+            return None
+        return v / norm
+
+
+    def edge_length(n1, n2):
+        v = Utils.vector(n1, n2)
+        return linalg.norm(np.array(v), 2)
 
 
     def reverse_geom(geom):
@@ -68,9 +76,9 @@ class Utils:
 
     def angle_modulo(a):
         if a < 0:
-            return angle_modulo(a + 2 * math.pi)
+            return Utils.angle_modulo(a + 2 * math.pi)
         elif a > 2 * math.pi:
-            return angle_modulo(a - 2 * math.pi)
+            return Utils.angle_modulo(a - 2 * math.pi)
         else:
             return a
 
@@ -86,7 +94,7 @@ class Utils:
             return m1
 
     
-    def get_buffered_osm(osm, supplementary_width):
+    def get_buffered_osm(osm, supplementary_width = 0):
 
         regions = []
         for n1 in osm:
@@ -97,6 +105,21 @@ class Utils:
                     p2 = osm.nodes[n2]
                     e = LineString([[p1["x"], p1["y"]], [p2["x"], p2["y"]]]).buffer((Utils.evaluate_width_way(edge) + supplementary_width) / 2)
                     regions.append(e)
+        return shapely.ops.unary_union(regions)
+
+
+    def get_buffered_by_osm(polyline, osm, supplementary_width = 0):
+        regions = []
+        for n1, n2 in zip(polyline, polyline[1:]):
+            p1 = osm.nodes[n1]
+            p2 = osm.nodes[n2]
+            if n1 in osm and n2 in osm[n1]:
+                edge = osm[n1][n2][0]
+                width = Utils.evaluate_width_way(edge) + supplementary_width
+            else:
+                width = 1 + supplementary_width
+            e = LineString([[p1["x"], p1["y"]], [p2["x"], p2["y"]]]).buffer((width) / 2)
+            regions.append(e)
         return shapely.ops.unary_union(regions)
 
 
@@ -139,10 +162,26 @@ class Utils:
         return result
 
 
-    def get_initial_edge_tags(cr_input, osm_n1, osm_n2):
+    def get_initial_node_tags(cr_input, osm_n1):
+        is_n = cr_input["id"] == str(osm_n1)
+        filtered = cr_input[is_n]
+        if len(filtered) > 0:
+            return filtered.iloc[0, :].to_dict()
+        else:
+            return None
+
+
+    def get_initial_edge_tags(cr_input, osm_n1, osm_n2, inverse = False):
         is_w = cr_input["id"] == str(osm_n1) + ";" + str(osm_n2)
         filtered = cr_input[is_w]
         if len(filtered) > 0:
             return filtered.iloc[0, :].to_dict()
         else:
-            return None
+            if inverse:
+                return Utils.get_initial_edge_tags(cr_input, osm_n1, osm_n2, False)
+            else:
+                return None
+
+    
+    def edge_in_osm(n1, n2, osm):
+        return n1 in osm and n2 in osm[n1]

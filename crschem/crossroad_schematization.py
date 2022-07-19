@@ -87,9 +87,10 @@ class CrossroadSchematization:
         print("Creating crossings")
         self.crossings = c.Crossing.create_crossings(self.osm_input, self.cr_input, self.inner_region)
 
+        print("Computing traffic island shape")
         # compute traffic island shape
         for island in self.traffic_islands:
-            island.compute_generalization(self.crossings)
+            island.compute_generalization(self.crossings, self.inner_region)
 
         # add a supplementary point on the sidewalks where a crossing is reaching it
         # to preserve the estimated distance
@@ -164,7 +165,7 @@ class CrossroadSchematization:
                 self.linear_ways[bid] = c.StraightWay(n1, n2, polybranch,
                                                       u.Utils.get_initial_edge_tags(self.cr_input, osm_n1, osm_n2),
                                                       osm_n1 == n1,
-                                                      c.Crossing.is_crossing(n1, self.osm_input))
+                                                      c.Crossing.is_crossing(n1, self.cr_input))
 
         # if two (or more) polybranches are intersecting, we remove from the polybranch all 
         # non common elements, and tags are the one at the end of the path
@@ -276,7 +277,7 @@ class CrossroadSchematization:
         # then build traffic islands
         self.traffic_islands = []
         for eid in traffic_islands_edges:
-            self.traffic_islands.append(c.TrafficIsland(traffic_islands_edges[eid], self.osm_input))
+            self.traffic_islands.append(c.TrafficIsland(traffic_islands_edges[eid], self.osm_input, self.cr_input))
 
 
     def toSvg(self, filename, only_reachable_islands = False):
@@ -367,7 +368,16 @@ class CrossroadSchematization:
         if islands:
             for sw in self.traffic_islands:
                 if sw.is_reachable or not only_reachable_islands:
-                    x, y = sw.center
-                    plt.plot(x, y, "ok", markersize=12, linewidth=12)
+                    if len(sw.extremities) == 0:
+                        x, y = sw.center
+                        plt.plot(x, y, "ok", markersize=12, linewidth=12)
+                    else:
+                        for e in sw.extremities:
+                            x = [sw.center[0], e[0]]
+                            y = [sw.center[1], e[1]]
+                            plt.plot(x, y, color="black", solid_capstyle='round', markersize=12, linewidth=12)
+
+                    
+
 
         plt.show()

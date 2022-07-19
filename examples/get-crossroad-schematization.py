@@ -39,6 +39,11 @@ input_params.add_argument('-c', '--by-coordinates', nargs=2, help='Load input fr
 
 group_input.add_argument('--overpass', help='Use Overpass to download data instead of the OSM api', action='store_true')
 
+group_preprocess = parser.add_argument_group('Preprocessing', "Parameters of the preprocesses (crseg, crdesc)")
+group_preprocess.add_argument('--c1', help='Intersection size (aggregation by adjacency). Default: 2.', type=float, default=2)
+group_preprocess.add_argument('--c2', help='Intersection size (aggregation by cycle detection). Default: 4.', type=float, default=4)
+
+
 group_output = parser.add_argument_group("Output", "Display, log or save results")
 group_output.add_argument('-l', '--log-files', help='keep intermediate files and give their name in output', action='store_true')
 group_output.add_argument('-d', '--display-all', help='display all steps', action='store_true')
@@ -50,6 +55,7 @@ group_preview.add_argument('--osm', help='display OpenStreetMap network', action
 group_preview.add_argument('--linear-ways', help='display linear ways', action='store_true')
 group_preview.add_argument('--branches', help='display branches', action='store_true')
 group_preview.add_argument('--sidewalks-on-branches', help='display sidewalks only on branches', action='store_true')
+group_preview.add_argument('--exact-islands', help='display exact shape of the islands', action='store_true')
 
 args = parser.parse_args()
 
@@ -77,7 +83,7 @@ else:
     undirected_G = ox.utils_graph.get_undirected(G)
     
     # segment it using topology and semantic
-    seg = cseg.Segmentation(undirected_G, C0 = 2, C1 = 2, C2 = 4, max_cycle_elements = 10)
+    seg = cseg.Segmentation(undirected_G, C0 = 2, C1 = args.c1, C2 = args.c2, max_cycle_elements = 10)
     seg.process()
 
     if args.display_all:
@@ -127,7 +133,8 @@ try:
     if args.display_preview or args.display_all:
         crschem.show(only_reachable_islands=args.only_reachable, osm_graph=args.osm,
                      linear_ways=args.linear_ways, branches=args.branches,
-                     simple_sidewalks=args.sidewalks_on_branches, merged_sidewalks=not args.sidewalks_on_branches)
+                     simple_sidewalks=args.sidewalks_on_branches, merged_sidewalks=not args.sidewalks_on_branches,
+                     exact_islands=args.exact_islands)
 
     if args.output:
         if len(args.output.filename) < 4:
