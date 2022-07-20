@@ -132,6 +132,10 @@ class StraightSidewalk:
         return str(self.edge) + "; side: " + str(self.side) + "; same orientation: " + str(self.same_orientation)
 
 
+    def update_first_node(self, coords):
+        self.edge = LineString([coords, self.edge.coords[1]])
+
+
     def extends_start(self, length = 1):
         edgecoords = np.asarray(self.edge.coords)
         start = edgecoords[0]
@@ -694,21 +698,41 @@ class Branch:
         return len(self.ways)
 
 
+    # return all the edges contained in the initial intersection
+    # that are not part of this branch
+    def get_other_edges(self):
+        result = []
+        for index, elem in self.cr_input.iterrows():
+            if elem["type"] in ["branch", "way"] and elem["name"] != self.name:
+                ids = list(map(int, elem["id"].split(";")))
+                result.append(ids)
+        return result
+
+
     def build_two_sidewalks(self):
         # the shift corresponds to half the width of the street
         shift = self.width / 2
         
         # compute the two lines (one in each side)
-        return [StraightSidewalk(self.middle_line.parallel_offset(shift, "left"), 
-                                 self.sides[0].edge_tags,
-                                 self.sides[0].same_osm_orientation,
-                                 "left", 
-                                 self.sides[0].is_crossing_inner_node()), 
-                StraightSidewalk(self.middle_line.parallel_offset(shift, "right"),
-                                 self.sides[1].edge_tags,
-                                 self.sides[1].same_osm_orientation,
-                                 "right", 
-                                 self.sides[1].is_crossing_inner_node())]
+        result = [StraightSidewalk(self.middle_line.parallel_offset(shift, "left"),
+                                   self.sides[0].edge_tags,
+                                   self.sides[0].same_osm_orientation,
+                                   "left",
+                                   self.sides[0].is_crossing_inner_node()),
+                   StraightSidewalk(self.middle_line.parallel_offset(shift, "right"),
+                                   self.sides[1].edge_tags,
+                                   self.sides[1].same_osm_orientation,
+                                   "right",
+                                   self.sides[1].is_crossing_inner_node())]
+
+        buf = u.Utils.get_edges_buffered_by_osm(self.get_other_edges(), self.osm_input, self.distance_kerb_footway).boundary
+        for i, s in enumerate(result):
+            intersections = s.edge.intersection(buf)
+            if not intersections.is_empty and isinstance(intersections, Point):
+                result[i].update_first_node(intersections)
+
+        return result
+
 
 
     # maximum distance between two extremity points of the ways

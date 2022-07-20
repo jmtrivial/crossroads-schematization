@@ -108,9 +108,9 @@ class Utils:
         return shapely.ops.unary_union(regions)
 
 
-    def get_buffered_by_osm(polyline, osm, supplementary_width = 0):
+    def get_edges_buffered_by_osm(edges, osm, supplementary_width = 0):
         regions = []
-        for n1, n2 in zip(polyline, polyline[1:]):
+        for n1, n2 in edges:
             p1 = osm.nodes[n1]
             p2 = osm.nodes[n2]
             if n1 in osm and n2 in osm[n1]:
@@ -121,6 +121,10 @@ class Utils:
             e = LineString([[p1["x"], p1["y"]], [p2["x"], p2["y"]]]).buffer((width) / 2)
             regions.append(e)
         return shapely.ops.unary_union(regions)
+
+
+    def get_buffered_by_osm(polyline, osm, supplementary_width = 0):
+        return Utils.get_edges_buffered_by_osm(zip(polyline, polyline[1:]), osm, supplementary_width)
 
 
     def evaluate_width_way(gEdge):
