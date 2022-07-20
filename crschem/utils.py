@@ -182,6 +182,9 @@ class Utils:
             else:
                 return None
 
+
+    def pathid_to_pathcoords(path, osm):
+        return [(osm.nodes[n]["x"], osm.nodes[n]["y"]) for n in path]
     
     def edge_in_osm(n1, n2, osm):
         return n1 in osm and n2 in osm[n1]

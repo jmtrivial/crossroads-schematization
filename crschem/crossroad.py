@@ -6,6 +6,7 @@ import copy
 import math
 import shapely.ops
 import osmnx
+from more_itertools import locate
 
 from . import utils as u
 from . import processing as p
@@ -423,36 +424,12 @@ class TrafficIsland:
         return [u.Utils.normalized_vector(e[0], e[1]) for e in oedges]
 
 
-    def get_straight_island_direction(self, section, elength):
+    def get_straight_island_direction(self, polylines):
         
-        def build_sides(section):
-            distances = [0] + [u.Utils.edge_length(a, b) for a, b in zip(section, section[1:])]
-            max_d = max(distances)
-            if max_d > elength * 1.00001:
-                # split and only preserve each side of the virtual edge
-                from more_itertools import locate
-                elements = list(locate(distances, lambda e: e >= elength * 1.00001))
-                side1 = section[0:elements[0]]
-                section2 = copy.deepcopy(section)
-                section2.reverse()
-                side2 = section2[0:len(section2) - elements[-1]]
-            else:
-                # split by mean distance
-                cumuld_dists = np.cumsum(distances)
-                mid = cumuld_dists[-1] / 2
-                side1 = [s for s, d in zip(section, cumuld_dists) if d < mid]
-                side2 = [s for s, d in zip(section, cumuld_dists) if d >= mid]
-                side2.reverse()
-            return LineString(side1), LineString(side2)
-
-
-        # build two polylines starting from the crosswalks (and stop them in a cleaver way)
-        l1, l2 = build_sides(section)
-
         # linearize the two polylines
-        lz = p.Linearization(length=50, initial_step=elength / 2, exponential_coef=1.2)
-        ll1 = lz.process(l1)
-        ll2 = lz.process(l2)
+        lz = p.Linearization(length=50, initial_step=0.5, exponential_coef=1.2)
+        ll1 = lz.process(LineString(polylines[0]))
+        ll2 = lz.process(LineString(polylines[1]))
 
         # use their directions to get a global direction for the island
         n1 = u.Utils.normalized_vector(ll1.coords[0], ll1.coords[1])
@@ -465,31 +442,47 @@ class TrafficIsland:
         return Point(self.center[0] + final_vector[0] * length, self.center[1] + final_vector[1] * length)
 
 
+    def build_polylines_from_section(self, section):
+
+        edges = [e for e in zip(section, section[1:]) if e[0] != e[1]]
+        outside = list(locate(edges, lambda e: not u.Utils.edge_in_osm(e[0], e[1], self.osm_input)))
+
+        if len(outside) != 0:
+            side1 = section[0:outside[0] + 1]
+            side2 = section[outside[-1] + 1:]
+            side2.reverse()
+            return u.Utils.pathid_to_pathcoords(side1, self.osm_input), u.Utils.pathid_to_pathcoords(side2, self.osm_input)
+        else:
+            # use length to split
+            path = LineString(u.Utils.pathid_to_pathcoords(section, self.osm_input))
+            step = 5
+            resampled_polyline = [path.interpolate(float(x) / step) for x in range(0, int(path.length * step))]
+
+            distances = [0] + [u.Utils.edge_length(a, b) for a, b in zip(resampled_polyline, resampled_polyline[1:])]
+            cumuld_dists = np.cumsum(distances)
+            mid = cumuld_dists[-1] / 2
+            side1 = [(s.x, s.y) for s, d in zip(resampled_polyline, cumuld_dists) if d < mid]
+            side2 = [(s.x, s.y) for s, d in zip(resampled_polyline, cumuld_dists) if d >= mid]
+            side2.reverse()
+            return side1, side2
+
+
 
     def get_edge_extremity_from_section(self, section, inner_region):
-        # build polyline
-        polyline = LineString([Point(self.osm_input.nodes[n]["x"], self.osm_input.nodes[n]["y"]) for n in section])
-
-        # discretize it with a 1/step meter step
-        step = 5
-        resampled_polyline = [polyline.interpolate(float(x) / step) for x in range(0, int(polyline.length * step))]
-  
-
-        # only preserve node in the inner region
-        selected = [p for p in resampled_polyline if inner_region.intersects(p)]        
-        
-        if len(selected) == 0:
-            return None
+        # build left and right polylines
+        polylines = self.build_polylines_from_section(section)
+        # LineString([Point(self.osm_input.nodes[n]["x"], self.osm_input.nodes[n]["y"]) for n in section])  
 
         # compute a straight island
-        other_in_edge = self.get_straight_island_direction(selected, 1.0 / step)
+        other_in_edge = self.get_straight_island_direction(polylines)
 
         if other_in_edge is None:
             return None
 
         # TODO DEBUG
         # import matplotlib.pyplot as plt
-        # plt.plot([c.x for c in selected], [c.y for c in selected], 'ok')
+        # for p in polylines:
+        #     plt.plot([c[0] for c in p], [c[1] for c in p], 'ok')
         # plt.plot([self.center[0], other_in_edge.x], [self.center[1], other_in_edge.y])
         # plt.show()
 
