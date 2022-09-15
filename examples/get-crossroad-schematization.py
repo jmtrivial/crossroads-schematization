@@ -9,7 +9,7 @@ from copy import deepcopy
 
 import crseg.segmentation as cseg
 import crseg.utils as cru
-import crdesc.description as cd
+import crmodel.crmodel as cm
 import crschem.crossroad_schematization as cs
 
 # a trick to avoid the creation of files given as parameters
@@ -101,14 +101,14 @@ else:
 
     # convert it as a model (from https://gitlab.limos.fr/jeremyk6/crossroads-description)
     print("Converting graph as a model")
-    desc = cd.Description()
-    desc.computeModel(G, tmp1.name)
-    description = desc.generateDescription()
+
+    model = cm.CrModel()
+    model.computeModel(G, tmp1.name)
 
     # save this model as a temporary file
     tmp2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
     with tmp2 as fp:
-        content = desc.getGeoJSON(description["structure"])
+        content = model.getGeoJSON()
         fp.write(content)
         fp.close()
 

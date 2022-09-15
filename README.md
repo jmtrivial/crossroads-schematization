@@ -4,9 +4,9 @@ Generate a schematization of an intersection from OpenStreetMap data.
 
 ## Dependancies
 
-Crossroads schematization depends on ```crossroadsdescriber```, that implies the following cascading dependancies:
+Crossroads schematization depends on ```crmodel```, that implies the following cascading dependancies:
 
-* [crossroadsdescriber](https://github.com/jeremyk6/crossroadsdescriber/)
+* [crossroadsdescriber](https://github.com/jeremyk6/crmodel/)
 * [crossroads-segmentation](https://github.com/jmtrivial/crossroads-segmentation)
 * OSMnx
 * NetworkX, geopandas
