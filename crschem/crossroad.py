@@ -548,6 +548,8 @@ class TrafficIsland:
         if self.is_reachable:
             #compute supplementary edges if some of points of the polygons are far from the center
             self.compute_edges(crossings, inner_region)
+        else:
+            self.extremities = []
 
 
     def getGeometry(self):
