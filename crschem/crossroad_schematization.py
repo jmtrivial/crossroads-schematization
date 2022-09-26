@@ -204,8 +204,9 @@ class CrossroadSchematization:
     def get_sidewalk_ids(self):
         result = set()
         for bid in self.sidewalks:
-            for sw in self.sidewalks[bid]:
-                result.add(sw.sidewalk_id())
+            if self.sidewalks[bid]:
+                for sw in self.sidewalks[bid]:
+                    result.add(sw.sidewalk_id())
         return list(result)
 
 
@@ -213,9 +214,10 @@ class CrossroadSchematization:
         result = []
 
         for bid in self.sidewalks:
-            for sw in self.sidewalks[bid]:
-                if sw.sidewalk_id() == sid:
-                    result.append(sw)
+            if self.sidewalks[bid]:
+                for sw in self.sidewalks[bid]:
+                    if sw.sidewalk_id() == sid:
+                        result.append(sw)
         
         return result
 
