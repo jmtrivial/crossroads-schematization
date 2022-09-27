@@ -187,7 +187,7 @@ class CrossroadSchematization:
             w = self.linear_ways[wid]
             e = w.edge_tags
             if e is not None:
-                bname = e["name"]
+                bname = e["name"].split("|")[0]
                 if not bname in self.branches:
                     self.branches[bname] = c.Branch(bname, self.osm_input, self.cr_input, self.distance_kerb_footway)
                 self.branches[bname].add_way(w)

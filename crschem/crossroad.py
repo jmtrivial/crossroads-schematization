@@ -779,7 +779,7 @@ class Branch:
         self.select_sidewalk_ways()
 
         if len(self.sides) != 2:
-            print("Not supported configuration:", len(self.sides), "sidewalk on branch")
+            print("Not supported configuration:", len(self.sides), "sidewalk on branch", self.name)
             self.sidewalks = None
         else:
 
