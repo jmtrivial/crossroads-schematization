@@ -53,7 +53,6 @@ group_output.add_argument('-o', '--output', help='output file (supported format:
 
 group_preview = parser.add_argument_group("Preview options", "Parameters used by the preview display")
 group_preview.add_argument('--osm', help='display OpenStreetMap network', action='store_true')
-group_preview.add_argument('--linear-ways', help='display linear ways', action='store_true')
 group_preview.add_argument('--branches', help='display branches', action='store_true')
 group_preview.add_argument('--sidewalks-on-branches', help='display sidewalks only on branches', action='store_true')
 group_preview.add_argument('--exact-islands', help='display exact shape of the islands', action='store_true')
@@ -133,7 +132,7 @@ try:
 
     if args.display_preview or args.display_all:
         crschem.show(only_reachable_islands=args.only_reachable, osm_graph=args.osm,
-                     linear_ways=args.linear_ways, branches=args.branches,
+                     branches=args.branches,
                      simple_sidewalks=args.sidewalks_on_branches, merged_sidewalks=not args.sidewalks_on_branches,
                      exact_islands=args.exact_islands)
 

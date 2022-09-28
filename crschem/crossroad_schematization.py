@@ -64,11 +64,8 @@ class CrossroadSchematization:
 
     def process(self):
         self.label_osm_from_input()
-
-        # TODO: if two ways are connected in the exterior side, then consider the next edge as the branch edge
-        self.extend_ways()
         
-        # pairing branch ways
+        # grouping ways by branch
         self.build_branches()
 
         # compute for each branch two long edges *S1* and *S2* corresponding to the sidewalks:
@@ -130,7 +127,6 @@ class CrossroadSchematization:
         print("Label OSM network")
         networkx.set_edge_attributes(self.osm_input, values="unknown", name="type")
         networkx.set_edge_attributes(self.osm_input, values="created", name="type_origin")
-        networkx.set_edge_attributes(self.osm_input, values=-1, name="branch_id")
         networkx.set_node_attributes(self.osm_input, values="unknown", name="type")
         for index, elem in self.cr_input.iterrows():
             if elem["type"] in ["branch", "way"]:
@@ -148,12 +144,11 @@ class CrossroadSchematization:
         return False
 
 
-    def extend_ways(self):
-        e = p.Expander()
-        print("Extending branches")
+    def build_branches(self):
+        print("Grouping ways by branch")
+        self.branches = {}
 
-        # compute for each way[type=branch] its extension
-        self.linear_ways = {}
+        bid = 0
         for index, elem in self.cr_input.iterrows():
             if elem["type"] == "branch":
                 ids = list(map(int, elem["id"].split(";")))
@@ -161,36 +156,13 @@ class CrossroadSchematization:
                 osm_n2 = ids[1] # last id in the OSM direction
                 n1 = osm_n1 if self.is_boundary_node(osm_n1) else osm_n2
                 n2 = osm_n2 if n1 == osm_n1 else osm_n1
-                bid, polybranch = e.process(self.osm_input, n1, n2)
-                self.linear_ways[bid] = c.StraightWay(n1, n2, polybranch,
-                                                      u.Utils.get_initial_edge_tags(self.cr_input, osm_n1, osm_n2),
-                                                      osm_n1 == n1,
-                                                      c.Crossing.is_crossing(n1, self.cr_input))
-
-        # if two (or more) polybranches are intersecting, we remove from the polybranch all 
-        # non common elements, and tags are the one at the end of the path
-        for lid1 in self.linear_ways:
-            for lid2 in self.linear_ways:
-                if lid1 > lid2:
-                    self.linear_ways[lid1].adjust_by_coherency(self.linear_ways[lid2], self.osm_input)
-
-        # finally fit one long edge on each polyline
-        for lid in self.linear_ways:
-            self.linear_ways[lid].compute_linear_edge(self.osm_input)
-
-
-    def build_branches(self):
-        print("Pairing ways by branch")
-        self.branches = {}
-
-        for wid in self.linear_ways:
-            w = self.linear_ways[wid]
-            e = w.edge_tags
-            if e is not None:
-                bname = e["name"].split("|")[0]
-                if not bname in self.branches:
-                    self.branches[bname] = c.Branch(bname, self.osm_input, self.cr_input, self.distance_kerb_footway)
-                self.branches[bname].add_way(w)
+                e = u.Utils.get_initial_edge_tags(self.cr_input, osm_n1, osm_n2)
+                if e is not None:
+                    bname = e["name"].split("|")[0]
+                    if not bname in self.branches:
+                        self.branches[bname] = c.Branch(bname, self.osm_input, self.cr_input, self.distance_kerb_footway)
+                    self.branches[bname].add_way(c.SimpleWay(n1, n2, e, osm_n1 == n1,
+                                                        c.Crossing.is_crossing(n1, self.cr_input)))
 
 
     def build_sidewalks(self):
@@ -225,7 +197,6 @@ class CrossroadSchematization:
         print("Assembling sidewalks")
         self.cr_input.replace('', np.nan, inplace=True)
         original_sidewalks_ids = self.get_sidewalk_ids()
-        
         self.merged_sidewalks = []
 
         for sid in original_sidewalks_ids:
@@ -304,7 +275,6 @@ class CrossroadSchematization:
 
     def show(self, 
              osm_graph = False,
-             linear_ways = False,
              branches = False,
              simple_sidewalks = False,
              merged_sidewalks = True,
@@ -327,15 +297,10 @@ class CrossroadSchematization:
                         p2 = self.osm_input.nodes[n2]
                         plt.plot([p1["x"], p2["x"]], [p1["y"], p2["y"]], color = "grey")
 
-        if linear_ways:
-            for geom in self.linear_ways:
-                x, y = self.linear_ways[geom].edge.xy
-                plt.plot(x, y, color = "red")
-                plt.plot(x[0],y[0],'ok')
 
         if branches:
             for geom in self.branches:
-                for ee in self.branches[geom].ways:
+                for ee in self.branches[geom].sides:
                     x, y = ee.edge.xy
                     plt.plot(x, y, color = "black")
                     plt.plot(x[0],y[0],'ok')

@@ -2,6 +2,7 @@ from shapely.geometry import Point, LineString, MultiLineString, LinearRing, Pol
 import shapely.ops
 import numpy as np
 from numpy import linalg
+import osmnx as ox
 
 from . import utils as u
 
@@ -65,16 +66,10 @@ class Expander:
         self.bid = 0
 
 
-    def process(self, G, n1, n2):
-        result = self.bid, self.extend_branch(G, n1, n2)
+    def process(self, G, n1, n2, left_first):
+        result = Expander.extend_branch(G, n1, n2, left_first)
         self.bid += 1
-        return result
-
-
-    def process_to_linestring(self, G, n1, n2):
-        bid = self.bid
-        polyline = self.process(G, n1, n2)[1]
-        return bid, Expander.convert_to_linestring(G, polyline)
+        return self.bid, result
 
 
     def convert_to_linestring(G, polyline):
@@ -104,32 +99,36 @@ class Expander:
         return True
 
 
-    def find_next_edge(G, n1, n2):
+    def find_next_edge(G, n1, n2, left_first):
 
-        possible_next = []
-        for n3 in G[n2]:
-            if n3 != n1 and G[n2][n3][0]["type"] == "unknown":
-                if Expander.is_similar_edge(G, [n1, n2], [n2, n3]):
-                    possible_next.append(n3)
-        
-        if len(possible_next) == 0:
+        def turn_angle(n1, n2, n3):
+            c1 = (G.nodes[n1]["x"], G.nodes[n1]["y"])
+            c2 = (G.nodes[n2]["x"], G.nodes[n2]["y"])
+            c3 = (G.nodes[n3]["x"], G.nodes[n3]["y"])
+            b1 = ox.bearing.calculate_bearing(c2[0], c2[1], c1[0], c1[1])
+            b2 = ox.bearing.calculate_bearing(c3[0], c3[1], c1[0], c1[1])
+            a = b2 - b1
+            if a < 0:
+                a += 360
+            return a
+
+        other = [n for n in G[n2] if n != n1 and G[n2][n][0]["type"] == "unknown" and
+                 Expander.is_similar_edge(G, [n1, n2], [n2, n])]
+        if len(other) == 0:
             return None
-        elif len(possible_next) == 1:
-            return possible_next[0]
+        elif len(other) == 1:
+            return other[0]
         else:
-            angles = sorted([(n, u.Utils.norm_and_dot(u.Utils.vector(G.nodes[n1], G.nodes[n2]), 
-                                                      u.Utils.vector(G.nodes[n1], G.nodes[n]))) for n in possible_next], key=lambda x: x[1])
-            return angles[-1][0]
+            sorted_other = sorted(other, key=lambda n: turn_angle(n1, n2, n), reverse=not left_first)
+            return sorted_other[0]
 
 
-    def extend_branch(self, G, n1, n2, first = True):
-        G[n1][n2][0]["branch_id"] = self.bid
-
+    def extend_branch(G, n1, n2, left_first):
         # find next edge in the same street
-        n3 = Expander.find_next_edge(G, n1, n2)
-        # if not found, we reverse the edge and try to build an extension from the other side
-        if n3 == None:
+        next = Expander.find_next_edge(G, n1, n2, left_first)
+        # if not found, we reach the end of the path
+        if next is None:
             return [n1, n2]
         else:
             # if found, we propagate the extension
-            return [n1] + self.extend_branch(G, n2, n3, False)
+            return [n1] + Expander.extend_branch(G, n2, next, left_first)

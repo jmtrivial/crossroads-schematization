@@ -12,24 +12,58 @@ from . import utils as u
 from . import processing as p
 
 
-class StraightWay:
+class SimpleWay:
     
     # parameters (and attributes)
     # - n1 is the interior node, n2 is the exterior node  (centripetal orientation)
-    # - polybranch: an extended path from n1, n2
     # - edge_tags: tags from crdesc
     # - same_osm_orientation: boolean (is the OSM orientation similar)
     # - is_crossing_interior_node: return true if the first node is a crossing
-    def __init__(self, n1, n2, polybranch, edge_tags, same_osm_orientation, is_crossing_interior_node):
+    def __init__(self, n1, n2, edge_tags, same_osm_orientation, is_crossing_interior_node):
         self.n1 = n1
         self.n2 = n2
-        self.polybranch = polybranch
-        self.edge = None
-        self.array = None
         self.same_osm_orientation = same_osm_orientation
         self.edge_tags = edge_tags
         self.is_crossing_interior_node = is_crossing_interior_node
+
+
+    def has_sidewalk(self):
+        return self.edge_tags["left_sidewalk"] != "" or self.edge_tags["right_sidewalk"] != ""
+
+
+    def get_sidewalk_id(self):
+        if self.edge_tags["left_sidewalk"] != "":
+            return self.edge_tags["left_sidewalk"]
+        elif self.edge_tags["right_sidewalk"] != "":
+            return self.edge_tags["right_sidewalk"]
+        else:
+            return ""
+
+    def has_sidewalks_both_sides(self):
+        return self.edge_tags["left_sidewalk"] != "" and self.edge_tags["right_sidewalk"] != ""
+
+
+    def is_crossing_inner_node(self):
+        return self.is_crossing_interior_node
+
+
+class StraightWay(SimpleWay):
+    
+    # parameters (and attributes)
+    # - a simpleway (defined by nodes n1, n2)
+    # - polybranch: an extended path from n1, n2
+    def __init__(self, sw, polybranch):
+        super().__init__(sw.n1, sw.n2, sw.edge_tags, sw.same_osm_orientation, sw.is_crossing_interior_node)
+        self.polybranch = polybranch
+        self.edge = None
+        self.array = None
         self.lz = p.Linearization()
+
+
+    def build_from_simpleway(sw, G, left_first):
+        result = StraightWay(sw, p.Expander.extend_branch(G, sw.n1, sw.n2, left_first)) 
+        result.compute_linear_edge(G)
+        return result
 
 
     def compute_linear_edge(self, G):
@@ -60,18 +94,6 @@ class StraightWay:
 
     def __str__(self):
         return str(((self.n1, self.n2), self.edge, self.same_osm_orientation))
-
-
-    def is_crossing_inner_node(self):
-        return self.is_crossing_interior_node
-
-
-    def has_sidewalk(self):
-        return self.edge_tags["left_sidewalk"] != "" or self.edge_tags["right_sidewalk"] != ""
-
-
-    def has_sidewalks_both_sides(self):
-        return self.edge_tags["left_sidewalk"] != "" and self.edge_tags["right_sidewalk"] != ""
 
 
     def point(self, i):
@@ -756,9 +778,6 @@ class Branch:
 
 
     def build_middle_way(self):
-        if self.single_side:
-            self.middle_line = self.sides[0].edge
-        else:
             self.middle_line = StraightWay.build_middle_line(self.sides[0], self.sides[1])
             
     
@@ -767,27 +786,44 @@ class Branch:
                     self.sides[1].evaluate_width_way(self.osm_input) / 2 + \
                     self.get_initial_branche_width() + 2 * self.distance_kerb_footway
 
-    def select_sidewalk_ways(self):
-        self.sides = [ w for w in self.ways if w.has_sidewalk()]
+    def build_sidewalk_straightways(self):
+        # get the external simple ways (they are bordered by a sidewalk)
+        self.simple_sides = [ w for w in self.ways if w.has_sidewalk()]
+
+        if len(self.simple_sides) > 2:
+            print("ERROR: more than two ways with a sidewalk (", self.name, ")")
+            return
+
         self.single_side = False
-        if len(self.sides) == 1 and self.sides[0].has_sidewalks_both_sides():
-            self.sides.append(self.sides[0])
-            self.single_side = True
+        # if only one way, we duplicate it
+        if len(self.simple_sides) == 1:
+            if self.simple_sides[0].has_sidewalks_both_sides():
+                self.simple_sides.append(self.simple_sides[0])
+            else:
+                print("ERROR: only one way in the branch, but with missing sidewalks (", self.name, ")")
+                return
+        else:
+            # order them according to the id of the sidewalk
+            self.simple_sides = sorted(self.simple_sides, key=lambda s: int(s.get_sidewalk_id()))
+            # and flip in case we are at a branch sharing first and last sidewalks (by id)
+            if int(self.simple_sides[1].get_sidewalk_id()) > int(self.simple_sides[0].get_sidewalk_id()) + 1:
+                self.simple_sides = [self.simple_sides[1], self.simple_sides[0]]
+
+        # build their extension as straightline
+        self.sides = [StraightWay.build_from_simpleway(self.simple_sides[0], self.osm_input, True), # always choose the left
+                       StraightWay.build_from_simpleway(self.simple_sides[1], self.osm_input, False)] # always choose the right
+
+
 
     def get_sidewalks(self):
 
-        self.select_sidewalk_ways()
+        self.build_sidewalk_straightways()
 
-        if len(self.sides) != 2:
-            print("Not supported configuration:", len(self.sides), "sidewalk on branch", self.name)
-            self.sidewalks = None
-        else:
+        self.build_middle_way()
 
-            self.build_middle_way()
+        self.compute_width()
 
-            self.compute_width()
-
-            self.sidewalks = self.build_two_sidewalks()
+        self.sidewalks = self.build_two_sidewalks()
 
         return self.sidewalks
 
