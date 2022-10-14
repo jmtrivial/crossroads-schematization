@@ -58,6 +58,7 @@ class StraightWay(SimpleWay):
         self.edge = None
         self.array = None
         self.lz = p.Linearization()
+        self.maximal_removal = 20 # meters
 
 
     def build_from_simpleway(sw, G, left_first):
@@ -67,8 +68,8 @@ class StraightWay(SimpleWay):
 
 
     def compute_linear_edge(self, G):
-        self.osm_input = G # TODO : remove that
-        self.edge = self.lz.process(p.Expander.convert_to_linestring(G, self.polybranch))
+        self.consolidated_polybranch = p.Expander.remove_non_straight_parts(G, self.polybranch, self.maximal_removal)
+        self.edge = self.lz.process(p.Expander.convert_to_linestring(G, self.consolidated_polybranch))
         self.array = np.asarray(self.edge.coords)
 
 
@@ -135,7 +136,7 @@ class StraightWay(SimpleWay):
     
     # basic evaluation of the width using number of lanes, and type of highway
     def evaluate_width_way(self, osm_graph):
-        return u.Utils.evaluate_width_way(osm_graph[self.polybranch[0]][self.polybranch[1]][0])
+        return u.Utils.evaluate_width_way(osm_graph[self.polybranch[-1]][self.polybranch[-2]][0])
 
 
 class StraightSidewalk:
@@ -765,7 +766,7 @@ class Branch:
         distance = 0
 
         for w in self.sides:
-            osm = [self.osm_input.nodes[int(x)] for x in w.polybranch[:2]]
+            osm = [self.osm_input.nodes[int(x)] for x in w.consolidated_polybranch[:2]] # use the first two elements
             emeters = LineString([(x["x"], x["y"]) for x in osm])
             if len(edges) != 0:
                 for ee in edges:
@@ -819,6 +820,9 @@ class Branch:
 
         self.build_sidewalk_straightways()
 
+        # TODO: shift each extremity of each sidewalk wrt the estimated width of each extremity
+
+        # TODO: remove this
         self.build_middle_way()
 
         self.compute_width()

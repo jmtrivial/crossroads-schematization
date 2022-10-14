@@ -4,6 +4,8 @@ import shapely.ops
 import numpy as np
 import math
 import re
+import osmnx as ox
+
 
 class Utils:
 
@@ -94,6 +96,18 @@ class Utils:
             return m1
 
     
+    def turn_angle(G, n1, n2, n3):
+        c1 = (G.nodes[n1]["x"], G.nodes[n1]["y"])
+        c2 = (G.nodes[n2]["x"], G.nodes[n2]["y"])
+        c3 = (G.nodes[n3]["x"], G.nodes[n3]["y"])
+        b1 = ox.bearing.calculate_bearing(c2[1], c2[0], c1[1], c1[0])
+        b2 = ox.bearing.calculate_bearing(c3[1], c3[0], c1[1], c1[0])
+        a = b2 - b1
+        if a < 0:
+            a += 360
+        return a
+
+
     def get_buffered_osm(osm, supplementary_width = 0):
 
         regions = []

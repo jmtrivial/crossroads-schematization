@@ -38,6 +38,7 @@ input_params.add_argument('-i', '--input-model', help='input geojson file genera
 input_params.add_argument('-c', '--by-coordinates', nargs=2, help='Load input from OSM using the given latitude, apply segmentation then model generation', type=float)
 
 group_input.add_argument('--overpass', help='Use Overpass to download data instead of the OSM api', action='store_true')
+group_input.add_argument('--ignore-cache', help='Ignore local cache', action='store_true')
 
 group_preprocess = parser.add_argument_group('Preprocessing', "Parameters of the preprocesses (crseg, crdesc)")
 group_preprocess.add_argument('--c0', help='Initial intersection size (distance between boundaries and middle of the initial intersection). Default: 2.', type=float, default=2)
@@ -71,7 +72,7 @@ else:
 
     # load data from OSM
     print("Loading data from OpenStreetMap")
-    ox.settings.use_cache = True
+    ox.settings.use_cache = not args.ignore_cache
     ox.settings.useful_tags_node = list(set(ox.settings.useful_tags_node + cs.CrossroadSchematization.node_tags_to_keep))
     G_init = cru.Util.get_osm_data(latitude, longitude, 200, args.overpass)#, ["cycleway", "cycleway:right", "cycleway:left", "psv"])
 

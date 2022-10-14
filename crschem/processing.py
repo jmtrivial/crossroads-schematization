@@ -2,7 +2,6 @@ from shapely.geometry import Point, LineString, MultiLineString, LinearRing, Pol
 import shapely.ops
 import numpy as np
 from numpy import linalg
-import osmnx as ox
 
 from . import utils as u
 
@@ -65,25 +64,56 @@ class Expander:
     def reset_bid(self):
         self.bid = 0
 
+    # return true if the point p2 (middle point of pts=[p1, p2, p3])
+    # is a splitting node, or an node with a strong angle
+    def is_split_in_straight_part(G, pts):
+        p1, p2, p3 = pts
+        if len(G[p2]) > 2:
+            return True
+        angle = u.Utils.turn_angle(G, p1, p2, p3)
+        if angle > 180:
+            angle = 360 - angle 
+        if abs(angle) > 30:
+            return True
+        
+        return False
+
 
     def process(self, G, n1, n2, left_first):
         result = Expander.extend_branch(G, n1, n2, left_first)
         self.bid += 1
         return self.bid, result
 
+    # remove first edges of the polyline if they are before a splitting node
+    # or before a node with a strong angle, and within a maximal distance (threshold)
+    # from the initial point
+    def remove_non_straight_parts(G, polyline, threshold):
+        if len(polyline) <= 2:
+            return polyline
+
+        # identify if each point is a split (thanks to the angle or its arity)
+        middle_points = zip(polyline, polyline[1:], polyline[2:])
+        is_split = [False] + [Expander.is_split_in_straight_part(G, p) for p in middle_points] + [False]
+
+        # use threshold to filter these possible splits
+        distances = [0] + [u.Utils.edge_length([G.nodes[a]["x"], G.nodes[a]["y"]], [G.nodes[b]["x"], G.nodes[b]["y"]]) for a, b in zip(polyline, polyline[1:])]
+        cumuld_dists = np.cumsum(distances)
+        is_split = [i and d < threshold for i, d in zip(is_split, cumuld_dists)]
+
+        try:
+            last = len(is_split) - is_split[::-1].index(True) - 1
+            return polyline[last:]
+        except:
+            return polyline
+
 
     def convert_to_linestring(G, polyline):
         return LineString([Point(G.nodes[x]["x"], G.nodes[x]["y"]) for x in polyline])
 
 
-    def is_turn(m, c1, c2):
-        v1 = [c1["x"] - m["x"], c1["y"] - m["y"]]
-        v2 = [c2["x"] - m["x"], c2["y"] - m["y"]]
-        uv1 = v1 / np.linalg.norm(v1)
-        uv2 = v2 / np.linalg.norm(v2)
-        dp = np.dot(uv1, uv2)
-
-        return abs(dp) < 0.5
+    def is_turn(G, c1, m, c2):
+        ta = u.Utils.turn_angle(G, c1, m, c2)
+        return ta < 90 or ta > 90 * 3
 
 
     def is_similar_edge(G, e1, e2):
@@ -94,23 +124,12 @@ class Expander:
             return False
         if tags_e1["name"] != tags_e2["name"]:
             return False
-        if Expander.is_turn(G.nodes[e1[0]], G.nodes[e1[1]], G.nodes[e2[1]]):
+        if Expander.is_turn(G, e1[1], e1[0], e2[1]):
             return False
         return True
 
 
     def find_next_edge(G, n1, n2, left_first):
-
-        def turn_angle(n1, n2, n3):
-            c1 = (G.nodes[n1]["x"], G.nodes[n1]["y"])
-            c2 = (G.nodes[n2]["x"], G.nodes[n2]["y"])
-            c3 = (G.nodes[n3]["x"], G.nodes[n3]["y"])
-            b1 = ox.bearing.calculate_bearing(c2[0], c2[1], c1[0], c1[1])
-            b2 = ox.bearing.calculate_bearing(c3[0], c3[1], c1[0], c1[1])
-            a = b2 - b1
-            if a < 0:
-                a += 360
-            return a
 
         other = [n for n in G[n2] if n != n1 and G[n2][n][0]["type"] == "unknown" and
                  Expander.is_similar_edge(G, [n1, n2], [n2, n])]
@@ -119,7 +138,7 @@ class Expander:
         elif len(other) == 1:
             return other[0]
         else:
-            sorted_other = sorted(other, key=lambda n: turn_angle(n1, n2, n), reverse=not left_first)
+            sorted_other = sorted(other, key=lambda n: u.Utils.turn_angle(G, n1, n2, n), reverse=not left_first)
             return sorted_other[0]
 
 
