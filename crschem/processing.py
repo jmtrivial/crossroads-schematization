@@ -129,6 +129,14 @@ class Expander:
         return True
 
 
+    def find_next_edge_simple(G, n1, n2):
+        other = [n for n in G[n2] if n != n1 and G[n2][n][0]["type"] == "unknown" and
+                 Expander.is_similar_edge(G, [n1, n2], [n2, n])]
+        if len(other) == 1:
+            return other[0]
+        else:
+            return None
+
     def find_next_edge(G, n1, n2, left_first):
 
         other = [n for n in G[n2] if n != n1 and G[n2][n][0]["type"] == "unknown" and

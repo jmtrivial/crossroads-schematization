@@ -355,8 +355,19 @@ class TrafficIsland:
                     reverse = True
                     self.polygon = self.polygon[::-1]
 
-        # TODO: if the polygon is not closed, a part is missing in the original data (but available in OSM)
+        # if the polygon is not closed, a part is missing in the original data (but available in OSM)
+        if self.polygon[0] != self.polygon[-1]:
+            self.extends_polygon_with_osm()
+            self.polygon = self.polygon[::-1]
+            self.extends_polygon_with_osm()
+            self.polygon = self.polygon[::-1]
 
+
+    def extends_polygon_with_osm(self):
+        next = p.Expander.find_next_edge_simple(self.osm_input, self.polygon[-2], self.polygon[-1])
+        while next != None:
+            self.polygon.append(next)
+            next = p.Expander.find_next_edge_simple(self.osm_input, self.polygon[-2], self.polygon[-1])
 
 
     def get_linearring(self):

@@ -29,8 +29,6 @@ class FileOpener(argparse.FileType):
 
 parser = argparse.ArgumentParser(description="Generate a schematized representation of a given crossroad.")
 
-parser.add_argument("--only-reachable", help="Ignore non reachable islands.", action='store_true')
-
 group_input = parser.add_argument_group('Input', "Define the input from OSM (by coordinates or by name) or from a computed model")
 
 input_params = group_input.add_mutually_exclusive_group(required=True)
@@ -57,6 +55,7 @@ group_preview.add_argument('--osm', help='display OpenStreetMap network', action
 group_preview.add_argument('--branches', help='display branches', action='store_true')
 group_preview.add_argument('--sidewalks-on-branches', help='display sidewalks only on branches', action='store_true')
 group_preview.add_argument('--exact-islands', help='display exact shape of the islands', action='store_true')
+group_preview.add_argument("--non-reachable-islands", help="display non reachable islands.", action='store_true')
 
 args = parser.parse_args()
 
@@ -132,7 +131,7 @@ try:
     crschem.process()
 
     if args.display_preview or args.display_all:
-        crschem.show(only_reachable_islands=args.only_reachable, osm_graph=args.osm,
+        crschem.show(only_reachable_islands=not args.non_reachable_islands, osm_graph=args.osm,
                      branches=args.branches,
                      simple_sidewalks=args.sidewalks_on_branches, merged_sidewalks=not args.sidewalks_on_branches,
                      exact_islands=args.exact_islands)
@@ -144,10 +143,10 @@ try:
     if args.output:
         if args.output.filename.endswith(".svg"):
             print("Exporting as svg:", args.output.filename)
-            crschem.toSvg(args.output.filename, args.only_reachable)
+            crschem.toSvg(args.output.filename, args.non_reachable_islands)
         elif args.output.filename.endswith(".geojson"):
             print("Exporting as geojson:", args.output.filename)
-            crschem.toGeojson(args.output.filename, args.only_reachable)
+            crschem.toGeojson(args.output.filename, args.non_reachable_islands)
         else:
             print("Unknown output format")
 
