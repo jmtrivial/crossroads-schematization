@@ -7,6 +7,7 @@ import math
 import shapely.ops
 import osmnx
 from more_itertools import locate
+import geopandas
 
 from . import utils as u
 from . import processing as p
@@ -45,6 +46,21 @@ class SimpleWay:
 
     def is_crossing_inner_node(self):
         return self.is_crossing_interior_node
+
+
+    def get_initial_edge_id(self):
+        if self.same_osm_orientation:
+            return self.get_edge_id()
+        else:
+            return self.get_edge_id_reverse()
+
+
+    def get_edge_id(self):
+        return str(self.n1) + ";" + str(self.n2)
+
+
+    def get_edge_id_reverse(self):
+        return str(self.n2) + ";" + str(self.n1)
 
 
 class StraightWay(SimpleWay):
@@ -100,21 +116,6 @@ class StraightWay(SimpleWay):
     def point(self, i):
         return Point(self.array[i])
 
-
-    def get_initial_edge_id(self):
-        if self.same_osm_orientation:
-            return self.get_edge_id()
-        else:
-            return self.get_edge_id_reverse()
-
-
-    def get_edge_id(self):
-        return str(self.n1) + ";" + str(self.n2)
-
-
-    def get_edge_id_reverse(self):
-        return str(self.n2) + ";" + str(self.n1)
-    
 
     def build_middle_line(sw1, sw2):
         e1_1 = p.Linearization.project_on_line(Point(sw1.array[0]), sw2.edge)
@@ -703,7 +704,7 @@ class Crossing:
         return Point(self.osm_input.nodes[self.node_id]["x"], self.osm_input.nodes[self.node_id]["y"])
 
     def toGDFCrossings(crossings):
-        d = {'type': [], 'orientation': [], 'osm_id': [], 'geometry': []}
+        d = {'type': [], 'orientation': [], 'osm_id': [], 'geometry': [], 'orientation_confidence': []}
 
         for cid in crossings:
             c = crossings[cid]

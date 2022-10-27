@@ -5,6 +5,7 @@ import numpy as np
 import copy
 import itertools
 import geopandas
+import pandas
 import re
 import matplotlib.pyplot as plt
 import crseg.segmentation as cseg
@@ -264,11 +265,11 @@ class CrossroadSchematization:
 
 
     def toGeojson(self, filename, only_reachable_islands = False):
-        df = self.toGDFInnerRegion()
-        df = df.append(c.TurningSidewalk.toGDFSidewalks(self.merged_sidewalks))
-        df = df.append(c.Branch.toGDFBranches(self.branches))
-        df = df.append(c.TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands))
-        df = df.append(c.Crossing.toGDFCrossings(self.crossings))
+        df = pandas.concat([self.toGDFInnerRegion(), 
+                            c.TurningSidewalk.toGDFSidewalks(self.merged_sidewalks),
+                            c.Branch.toGDFBranches(self.branches),
+                            c.TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands),
+                            c.Crossing.toGDFCrossings(self.crossings)])
         
         df.to_file(filename, driver='GeoJSON')
 
