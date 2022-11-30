@@ -2,7 +2,13 @@
 
 Generate a schematization of an intersection from OpenStreetMap data.
 
-## Dependancies
+## Installation
+
+With pip, use the following command line to install crschem:
+
+* ```pip install crossroads-schematization```
+
+Dependancies:
 
 Crossroads schematization depends on ```crmodel```, that implies the following cascading dependancies:
 
@@ -14,7 +20,8 @@ Crossroads schematization depends on ```crmodel```, that implies the following c
 
 ## Usage
 
-A complete example of this library is available using the following command: ```PYTHONPATH=$PWD examples/get-crossroad-schematization.py```, using ```--help``` for possible parameters.
+If you installed crossroads-schematization using pip, a console script is now available using ```get_crossroad_segmentation```.
+This script is also available in the examples folder (```PYTHONPATH=$PWD examples/get-crossroad-schematization.py```). You will find a complete description of the parameters using ```--help```.
 
 ## Pipeline
 
