@@ -254,6 +254,97 @@ class CrossroadSchematization:
             self.traffic_islands.append(c.TrafficIsland(traffic_islands_edges[eid], self.osm_input, self.cr_input))
 
 
+    def to_printable_internal(self, filename, log_files):
+        from qgis.core import QgsApplication, QgsProject, QgsPrintLayout, QgsLayout, QgsVectorLayer, QgsLayoutExporter, QgsLayoutItemPage, QgsReadWriteContext, QgsRectangle
+        from qgis.PyQt.QtXml import QDomDocument
+        import tempfile
+        import os
+
+        tmp = tempfile.NamedTemporaryFile(mode='w', delete=False) 
+        self.toGeojson(tmp.name, True)
+        if log_files:
+            print("geojson:", tmp.name)
+        qgs = QgsApplication([], False)
+        qgs.initQgis()
+        
+        # get project
+        project = QgsProject.instance()
+        composition = QgsPrintLayout(project)
+        
+        # load layers
+        geojson = tmp.name
+        points_layer = QgsVectorLayer(geojson + '|geometrytype=Point', "points", "ogr")
+        lines_layer = QgsVectorLayer(geojson + '|geometrytype=LineString', "lines", "ogr")
+        polygons_layer = QgsVectorLayer(geojson + '|geometrytype=Polygon', "polygons", "ogr")
+        # project them on map
+        project.addMapLayer(polygons_layer)
+        project.addMapLayer(lines_layer)
+        project.addMapLayer(points_layer)
+
+
+        # compute region of interest
+        polygons_layer.selectAll() # the polygon corresponding to the car ways
+        pg_box = polygons_layer.boundingBoxOfSelected()
+        points_layer.selectByRect(pg_box) # only keep points inside (crossings, islands)
+        pt_box = points_layer.boundingBoxOfSelected()
+        # then combine both rectangles to zoom on the points within the main region
+        pp = 2
+        pb = 1
+        box = QgsRectangle((pt_box.xMinimum() * pp + pg_box.xMinimum() * pb) / (pp + pb),
+                           (pt_box.yMinimum() * pp + pg_box.yMinimum() * pb) / (pp + pb),
+                           (pt_box.xMaximum() * pp + pg_box.xMaximum() * pb) / (pp + pb),
+                           (pt_box.yMaximum() * pp + pg_box.yMaximum() * pb) / (pp + pb))
+
+        # load layout
+        layout = QgsLayout(project)
+        layout.initializeDefaults()
+        layout.pageCollection().page(0).setPageSize('A5', QgsLayoutItemPage.Orientation.Landscape)
+        template_file = open(os.path.dirname(__file__) + "/resources/tactile-a5.qpt")
+        template_content = template_file.read()
+        template_file.close()
+        document = QDomDocument()
+        document.setContent(template_content)
+        items, ok = layout.loadFromTemplate(document, QgsReadWriteContext(), False)
+        for i in items:
+            if i.id() == "Carte 1":
+                # zoom on the intersection
+                i.zoomToExtent(box)
+        
+        # to solve the SVG relative path in qml files, use a trick [BEGIN]
+        filename = os.path.abspath(filename)
+        cwd = os.getcwd()
+        os.chdir(os.path.dirname(__file__))
+
+        # load layer styles and assign them to the layers
+        points_style = os.path.dirname(__file__) + "/resources/rendering-nodes.qml" # TODO: integrate them for pipe
+        lines_style = os.path.dirname(__file__) + "/resources/rendering-polylines.qml"
+        polygons_style = os.path.dirname(__file__) + "/resources/rendering-areas.qml" # sld
+        
+        points_layer.loadNamedStyle(points_style)
+        lines_layer.loadNamedStyle(lines_style)
+        polygons_layer.loadNamedStyle(polygons_style)
+        
+        exporter = QgsLayoutExporter(layout)
+        settings = exporter.PdfExportSettings()
+        settings.rasterizeWholeImage = False
+        if filename.endswith(".pdf"):
+            exporter.exportToPdf(filename, settings)
+        else:
+            exporter.exportToImage(filename, QgsLayoutExporter.ImageExportSettings())
+        
+        # trick [END]: go back to the initial directory
+        os.chdir(cwd)
+        
+
+
+    def toPdf(self, filename, log_files = False):
+        self.to_printable_internal(filename, log_files)
+        
+
+    def toTif(self, filename, log_files = False):
+        self.to_printable_internal(filename, log_files)
+        
+
     def toSvg(self, filename, only_reachable_islands = False):
         # TODO
         print("not yet implemented")

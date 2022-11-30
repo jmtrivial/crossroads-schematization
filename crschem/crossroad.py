@@ -588,7 +588,10 @@ class TrafficIsland:
 
 
     def getGeometry(self):
-        return Point(self.center)
+        if len(self.extremities) == 0:
+            return [Point(self.center)]
+        else:
+            return [LineString([self.center, e]) for e in self.extremities]
 
 
     def toGDFTrafficIslands(traffic_islands, only_reachable = True):
@@ -596,9 +599,11 @@ class TrafficIsland:
 
         for t in traffic_islands:
             if t.is_reachable or not only_reachable:
-                d["type"].append("traffic_island")
-                d["osm_id"].append(";".join(map(str, t.polygon)))
-                d["geometry"].append(t.getGeometry())
+                geom = t.getGeometry()
+                for g in geom:
+                    d["type"].append("traffic_island")
+                    d["osm_id"].append(";".join(map(str, t.polygon)))
+                    d["geometry"].append(g)
 
         return geopandas.GeoDataFrame(d, crs=2154)
 

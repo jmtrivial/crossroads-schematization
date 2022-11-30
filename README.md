@@ -42,20 +42,3 @@ Each traffic island is available as a polygon from crossroads-description. We co
   
 Each pedestrian crossing is described by a dedicated pictogram, aligned with the corresponding edge from the initial data
 
-## Open questions
-
-* the final rendering is an svg. How to create pictograms and draw them from geodata?
-
-## Possible tools
-
-* OSMnx: 
-  * shapely
-    * object.parallel_offset
-    * object.simplify
-    * line.interpolate
-  * ```osmnx.utils_graph.graph_to_gdfs```
-
-* convert to svg:
-  * http://kuanbutts.com/2018/09/06/geodataframe-to-svg-2/
-  * https://svgis.readthedocs.io/en/stable/
-

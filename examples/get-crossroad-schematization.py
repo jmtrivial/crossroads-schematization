@@ -6,6 +6,8 @@ import geopandas
 import tempfile
 import osmnx as ox
 from copy import deepcopy
+import os
+import sys
 
 import crseg.segmentation as cseg
 import crseg.utils as cru
@@ -48,7 +50,7 @@ group_output = parser.add_argument_group("Output", "Display, log or save results
 group_output.add_argument('-l', '--log-files', help='keep intermediate files and give their name in output', action='store_true')
 group_output.add_argument('-d', '--display-all', help='display all steps', action='store_true')
 group_output.add_argument('--display-preview', help='display a preview of the crossroad schematization', action='store_true')
-group_output.add_argument('-o', '--output', help='output file (supported format: svg, geojson)', type=FileOpener('w'))
+group_output.add_argument('-o', '--output', help='output file (supported format: geojson, pdf, tif)', type=FileOpener('w'))
 
 group_preview = parser.add_argument_group("Preview options", "Parameters used by the preview display")
 group_preview.add_argument('--osm', help='display OpenStreetMap network', action='store_true')
@@ -141,7 +143,14 @@ try:
             "Cannot deduce required format with small file names"
             
     if args.output:
-        if args.output.filename.endswith(".svg"):
+    
+        if args.output.filename.endswith(".pdf"):
+            print("Exporting as pdf:", args.output.filename)
+            crschem.toPdf(args.output.filename, args.log_files)
+        elif args.output.filename.endswith(".tif"):
+            print("Exporting as tif:", args.output.filename)
+            crschem.toTif(args.output.filename, args.log_files)
+        elif args.output.filename.endswith(".svg"):
             print("Exporting as svg:", args.output.filename)
             crschem.toSvg(args.output.filename, args.non_reachable_islands)
         elif args.output.filename.endswith(".geojson"):
@@ -149,6 +158,7 @@ try:
             crschem.toGeojson(args.output.filename, args.non_reachable_islands)
         else:
             print("Unknown output format")
+            
 
 except ValueError as e:
     print("Error:", e)
