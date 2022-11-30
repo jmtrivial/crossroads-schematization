@@ -20,7 +20,7 @@ Crossroads schematization depends on ```crmodel```, that implies the following c
 
 ## Usage
 
-If you installed crossroads-schematization using pip, a console script is now available using ```get_crossroad_segmentation```.
+If you installed crossroads-schematization using pip, a console script is now available using ```get_crossroad_schematization```.
 This script is also available in the examples folder (```PYTHONPATH=$PWD examples/get-crossroad-schematization.py```). You will find a complete description of the parameters using ```--help```.
 
 ## Pipeline
