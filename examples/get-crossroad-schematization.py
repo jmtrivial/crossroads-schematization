@@ -3,15 +3,9 @@
 
 import argparse
 import geopandas
-import tempfile
-import osmnx as ox
-from copy import deepcopy
-import os
+
 import sys
 
-import crseg.segmentation as cseg
-import crseg.utils as cru
-import crmodel.crmodel as cm
 import crschem.crossroad_schematization as cs
 
 # a trick to avoid the creation of files given as parameters
@@ -61,74 +55,22 @@ group_preview.add_argument("--non-reachable-islands", help="display non reachabl
 
 args = parser.parse_args()
 
-
-input_file = ""
-if args.input_model:
-    input_file = args.input_model.filename
-    G_init = None
-    print("Loading input geojson (" + input_file + ")")
-else:
-    latitude = args.by_coordinates[0]
-    longitude = args.by_coordinates[1]
-
-    # load data from OSM
-    print("Loading data from OpenStreetMap")
-    ox.settings.use_cache = not args.ignore_cache
-    ox.settings.useful_tags_node = list(set(ox.settings.useful_tags_node + cs.CrossroadSchematization.node_tags_to_keep))
-    G_init = cru.Util.get_osm_data(latitude, longitude, 200, args.overpass)#, ["cycleway", "cycleway:right", "cycleway:left", "psv"])
-
-    # segment intersection(from https://github.com/jmtrivial/crossroads-segmentation)
-    print("Segmenting intersection")
-    # remove sidewalks, cycleways, service ways
-    G = cseg.Segmentation.prepare_network(deepcopy(G_init))
-    # build an undirected version of the graph
-    undirected_G = ox.utils_graph.get_undirected(G)
-    
-    # segment it using topology and semantic
-    seg = cseg.Segmentation(undirected_G, C0 = args.c0, C1 = args.c1, C2 = args.c2, max_cycle_elements = 10)
-    seg.process()
-
-    if args.display_all:
-        print("Displaying segmentation")
-        cr = seg.get_crossroad(longitude, latitude)
-        ec = seg.get_regions_colors_from_crossroad(cr)
-        nc = seg.get_nodes_regions_colors_from_crossroad(cr)
-        ox.plot.plot_graph(undirected_G, edge_color=ec, node_color=nc)
-
-    tmp1 = tempfile.NamedTemporaryFile(mode='w', delete=False)
-    seg.to_json(tmp1.name, longitude, latitude)
-    if args.log_files:
-        print("Segmentation:", tmp1.name)
-
-
-    # convert it as a model (from https://gitlab.limos.fr/jeremyk6/crossroads-description)
-    print("Converting graph as a model")
-
-    model = cm.CrModel()
-    model.computeModel(G, tmp1.name)
-
-    # save this model as a temporary file
-    tmp2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
-    with tmp2 as fp:
-        content = model.getGeoJSON()
-        fp.write(content)
-        fp.close()
-
-    input_file = tmp2.name
-
-    if args.log_files:
-        print("Model:", tmp2.name)
-
-
-# load geojson data from Jérémy's tool
-cr_input = geopandas.read_file(input_file)
-
 try:
-    crschem = cs.CrossroadSchematization(cr_input, G_init)
 
-    '''if not crschem.is_valid_model():
-        print("Error: the model is not valid")
-        exit(1)'''
+    if args.input_model:
+        input_file = args.input_model.filename
+        G_init = None
+        print("Loading input geojson (" + input_file + ")")
+        crschem = cs.CrossroadSchematization(cr_input, G_init)
+    else:
+        latitude = args.by_coordinates[0]
+        longitude = args.by_coordinates[1]
+        crschem = cs.CrossroadSchematization.build(latitude, longitude,
+                                                   args.c0, args.c1, args.c2,                                                   verbose = True,
+                                                   ignore_cache = args.ignore_cache,
+                                                   overpass = args.overpass,
+                                                   log_files = args.log_files)
+
 
     crschem.process()
 

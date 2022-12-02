@@ -48,6 +48,69 @@ class CrossroadSchematization:
         self.load_osm(osm_oriented, osm_unoriented)
 
 
+    def build(latitude, longitude,
+              C0, C1, C2,
+              verbose = True,
+              ignore_cache = False,
+              overpass = False,
+              log_files = False):
+
+        import crseg.segmentation as cseg
+        import crseg.utils as cru
+        import crmodel.crmodel as cm
+        import osmnx as ox
+        from copy import deepcopy
+        import tempfile
+        import os
+
+        # load data from OSM
+        if verbose:
+            print("Loading data from OpenStreetMap")
+        ox.settings.use_cache = not ignore_cache
+        ox.settings.useful_tags_node = list(set(ox.settings.useful_tags_node + CrossroadSchematization.node_tags_to_keep))
+        G_init = cru.Util.get_osm_data(latitude, longitude, 200, overpass)#, ["cycleway", "cycleway:right", "cycleway:left", "psv"])
+
+        # segment intersection(from https://github.com/jmtrivial/crossroads-segmentation)
+        if verbose:
+            print("Segmenting intersection")
+        # remove sidewalks, cycleways, service ways
+        G = cseg.Segmentation.prepare_network(deepcopy(G_init))
+        # build an undirected version of the graph
+        undirected_G = ox.utils_graph.get_undirected(G)
+        
+        # segment it using topology and semantic
+        seg = cseg.Segmentation(undirected_G, C0 = C0, C1 = C1, C2 = C2, max_cycle_elements = 10)
+        seg.process()
+
+        tmp1 = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        seg.to_json(tmp1.name, longitude, latitude)
+        # convert it as a model (from https://gitlab.limos.fr/jeremyk6/crossroads-description)
+        print("Converting graph as a model")
+
+        model = cm.CrModel()
+        model.computeModel(G, tmp1.name)
+
+        if log_files:
+            print("Segmentation:", tmp1.name)
+        else:
+            os.unlink(tmp1.name)
+
+        # save this model as a temporary file
+        tmp2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        with tmp2 as fp:
+            content = model.getGeoJSON()
+            fp.write(content)
+            fp.close()
+
+        cr_input = geopandas.read_file(tmp2.name)
+
+        if log_files:
+            print("Model:", tmp2.name)
+        else:
+            os.unlink(tmp2.name)
+
+        return CrossroadSchematization(cr_input, G_init)
+
     def is_valid_model(self):
         for index, elem in self.cr_input.iterrows():
             if elem["type"] in ["branch", "way"]:                
@@ -262,8 +325,6 @@ class CrossroadSchematization:
 
         tmp = tempfile.NamedTemporaryFile(mode='w', delete=False) 
         self.toGeojson(tmp.name, True)
-        if log_files:
-            print("geojson:", tmp.name)
         qgs = QgsApplication([], False)
         qgs.initQgis()
         
@@ -280,7 +341,6 @@ class CrossroadSchematization:
         project.addMapLayer(polygons_layer)
         project.addMapLayer(lines_layer)
         project.addMapLayer(points_layer)
-
 
         # compute region of interest
         polygons_layer.selectAll() # the polygon corresponding to the car ways
@@ -335,6 +395,12 @@ class CrossroadSchematization:
         # trick [END]: go back to the initial directory
         os.chdir(cwd)
         
+        # delete temporary file if not required
+        if log_files:
+            print("geojson:", tmp.name)
+        else:
+            os.unlink(tmp.name)
+
 
 
     def toPdf(self, filename, log_files = False):
