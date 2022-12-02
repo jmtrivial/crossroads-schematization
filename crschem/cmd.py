@@ -2,7 +2,6 @@
 
 import argparse
 import geopandas
-import os
 import sys
 
 import crschem.crossroad_schematization as cs
