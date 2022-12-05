@@ -317,7 +317,7 @@ class CrossroadSchematization:
             self.traffic_islands.append(c.TrafficIsland(traffic_islands_edges[eid], self.osm_input, self.cr_input))
 
 
-    def to_printable_internal(self, filename, log_files):
+    def to_printable_internal(self, filename, log_files, dpi = -1):
         from qgis.core import QgsApplication, QgsProject, QgsPrintLayout, QgsLayout, QgsVectorLayer, QgsLayoutExporter, QgsLayoutItemPage, QgsReadWriteContext, QgsRectangle
         from qgis.PyQt.QtXml import QDomDocument
         import tempfile
@@ -390,7 +390,10 @@ class CrossroadSchematization:
         if filename.endswith(".pdf"):
             exporter.exportToPdf(filename, settings)
         else:
-            exporter.exportToImage(filename, QgsLayoutExporter.ImageExportSettings())
+            settings = QgsLayoutExporter.ImageExportSettings()
+            if dpi > 0:
+                settings.dpi = dpi
+            exporter.exportToImage(filename, settings)
         
         # trick [END]: go back to the initial directory
         os.chdir(cwd)
@@ -407,8 +410,8 @@ class CrossroadSchematization:
         self.to_printable_internal(filename, log_files)
         
 
-    def toTif(self, filename, log_files = False):
-        self.to_printable_internal(filename, log_files)
+    def toTif(self, filename, log_files = False, dpi = -1):
+        self.to_printable_internal(filename, log_files, dpi)
         
 
     def toSvg(self, filename, only_reachable_islands = False):
