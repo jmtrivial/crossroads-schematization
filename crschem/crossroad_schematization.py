@@ -421,12 +421,12 @@ class CrossroadSchematization:
         return geopandas.GeoDataFrame(d, crs=2154)
 
 
-    def toGeojson(self, filename, only_reachable_islands = False):
-        df = pandas.concat([self.toGDFInnerRegion(), 
-                            c.TurningSidewalk.toGDFSidewalks(self.merged_sidewalks),
-                            c.Branch.toGDFBranches(self.branches),
-                            c.TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands),
-                            c.Crossing.toGDFCrossings(self.crossings)])
+    def toGeojson(self, filename, only_reachable_islands = False, crs = "EPSG:4326"):
+        df = pandas.concat([self.toGDFInnerRegion().to_crs(crs),
+                            c.TurningSidewalk.toGDFSidewalks(self.merged_sidewalks).to_crs(crs),
+                            c.Branch.toGDFBranches(self.branches).to_crs(crs),
+                            c.TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands).to_crs(crs),
+                            c.Crossing.toGDFCrossings(self.crossings).to_crs(crs)])
         
         df.to_file(filename, driver='GeoJSON')
 
