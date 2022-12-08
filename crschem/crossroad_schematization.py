@@ -317,8 +317,8 @@ class CrossroadSchematization:
             self.traffic_islands.append(c.TrafficIsland(traffic_islands_edges[eid], self.osm_input, self.cr_input))
 
 
-    def to_printable_internal(self, filename, log_files, dpi = -1):
-        from qgis.core import QgsApplication, QgsProject, QgsPrintLayout, QgsLayout, QgsVectorLayer, QgsLayoutExporter, QgsLayoutItemPage, QgsReadWriteContext, QgsRectangle
+    def to_printable_internal(self, filename, log_files, dpi = -1, crs = 3857):
+        from qgis.core import QgsApplication, QgsProject, QgsPrintLayout, QgsLayout, QgsVectorLayer, QgsLayoutExporter, QgsLayoutItemPage, QgsReadWriteContext, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform
         from qgis.PyQt.QtXml import QDomDocument
         import tempfile
         import os
@@ -331,12 +331,13 @@ class CrossroadSchematization:
         # get project
         project = QgsProject.instance()
         composition = QgsPrintLayout(project)
+        project.setCrs(QgsCoordinateReferenceSystem(crs))
         
         # load layers
         geojson = tmp.name
         points_layer = QgsVectorLayer(geojson + '|geometrytype=Point', "points", "ogr")
         lines_layer = QgsVectorLayer(geojson + '|geometrytype=LineString', "lines", "ogr")
-        polygons_layer = QgsVectorLayer(geojson + '|geometrytype=Polygon', "polygons", "ogr")
+        polygons_layer = QgsVectorLayer(geojson + '|geometrytype=Polygon', "polygons", "ogr") # 4326
         # project them on map
         project.addMapLayer(polygons_layer)
         project.addMapLayer(lines_layer)
@@ -350,10 +351,15 @@ class CrossroadSchematization:
         # then combine both rectangles to zoom on the points within the main region
         pp = 2
         pb = 1
+        sourceCrs = QgsCoordinateReferenceSystem(polygons_layer.crs())
+        destCrs = QgsCoordinateReferenceSystem(project.crs())
+        tr = QgsCoordinateTransform(sourceCrs, destCrs, project)
+
         box = QgsRectangle((pt_box.xMinimum() * pp + pg_box.xMinimum() * pb) / (pp + pb),
                            (pt_box.yMinimum() * pp + pg_box.yMinimum() * pb) / (pp + pb),
                            (pt_box.xMaximum() * pp + pg_box.xMaximum() * pb) / (pp + pb),
                            (pt_box.yMaximum() * pp + pg_box.yMaximum() * pb) / (pp + pb))
+        box = tr.transform(box)
 
         # load layout
         layout = QgsLayout(project)
@@ -369,7 +375,9 @@ class CrossroadSchematization:
             if i.id() == "Carte 1":
                 # zoom on the intersection
                 i.zoomToExtent(box)
-        
+                # if the zoom is more than 1:400, we come back to this scale
+                if i.scale() < 400:
+                    i.setScale(400)
         # to solve the SVG relative path in qml files, use a trick [BEGIN]
         filename = os.path.abspath(filename)
         cwd = os.getcwd()
