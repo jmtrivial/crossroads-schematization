@@ -615,9 +615,25 @@ class Crossing:
         self.node_id = node_id
         self.osm_input = osm_input
 
+        self.island_width = 0.50 # cm
+
         self.compute_location()
         self.compute_orientation()
 
+        self.compute_crossing_profile()
+
+    def compute_crossing_profile(self):
+        self.has_island = "crossing:island" in self.osm_input.nodes[self.node_id] and self.osm_input.nodes[self.node_id]["crossing:island"] == "yes"
+        car_way = u.Utils.get_adjacent_road_edge(self.node_id, self.osm_input)
+        if car_way != None:
+            nb_backward, nb_forward, width = u.Utils.evaluate_way_composition(car_way)
+            self.nb_lanes_backward = nb_backward
+            self.nb_lanes_forward = nb_forward
+            self.lane_width = width
+        else:
+            self.nb_lanes_backward = 0
+            self.nb_lanes_forward = 0
+            self.lane_width = 0
 
     def compute_location(self):
         self.x = self.osm_input.nodes[self.node_id]["x"]
@@ -708,16 +724,85 @@ class Crossing:
     def getGeometry(self):
         return Point(self.osm_input.nodes[self.node_id]["x"], self.osm_input.nodes[self.node_id]["y"])
 
-    def toGDFCrossings(crossings):
-        d = {'type': [], 'orientation': [], 'osm_id': [], 'geometry': [], 'orientation_confidence': []}
+    def getCrossingElements(self):
+        nb = self.nb_lanes_backward + self.nb_lanes_forward
+        start_shift = (nb - 1) * self.lane_width / 2
+        total_width = nb * self.lane_width
+        if self.has_island:
+            lane_width_effective = (total_width - self.island_width) / nb
+        else: 
+            lane_width_effective = self.lane_width
+
+        elements = []
+        x = self.osm_input.nodes[self.node_id]["x"]
+        y = self.osm_input.nodes[self.node_id]["y"]
+
+        # crossings
+        for i in range(nb):
+            shift = -start_shift + i * lane_width_effective + (self.island_width if self.has_island and i >= self.nb_lanes_forward else 0)
+            shiftx = math.cos(self.bearing) * shift
+            shifty = math.sin(self.bearing) * shift
+            elements.append({ "type": "crossing",
+                              "geometry": Point(x + shiftx, y + shifty),
+                              "lane_orientation": "forward" if i < self.nb_lanes_forward else "backward",
+                              "lane_width": lane_width_effective })
+
+        # separators
+        start_shift -= self.lane_width / 2
+        for i in range(nb - 1):
+            shift = -start_shift + i * lane_width_effective
+            if self.has_island:
+                if i + 1== self.nb_lanes_forward:
+                    shift += self.island_width / 2
+                elif i + 1 > self.nb_lanes_forward:
+                    shift += self.island_width
+            shiftx = math.cos(self.bearing) * shift
+            shifty = math.sin(self.bearing) * shift
+            island = self.has_island and i + 1 == self.nb_lanes_backward
+            elements.append({ "type": "traffic_island" if island else "lane_separator",
+                              "geometry": Point(x + shiftx, y + shifty),
+                              "lane_orientation": None,
+                              "lane_width": self.island_width if island else 0 })
+
+        return elements
+
+
+    def toGDFCrossings(crossings, details = True):
+        d = {'type': [], 
+             'osm_id': [],
+             'geometry': [],
+             'orientation': [],
+             'orientation_confidence': [],
+             'lane_width': [] }
+
+        if details:
+            d['lane_orientation'] = []
+        else:
+            d['has_island'] = []
+            d['nb_lanes_backward'] = []
+            d['nb_lanes_forward'] = []
 
         for cid in crossings:
             c = crossings[cid]
-            d["type"].append("crossing")
-            d["orientation"].append(c.bearing)
-            d["orientation_confidence"].append(c.bearing_confidence)
-            d["osm_id"].append(c.node_id)
-            d["geometry"].append(c.getGeometry())
+            if details:
+                for e in c.getCrossingElements():
+                    d["type"].append(e["type"])
+                    d["osm_id"].append(c.node_id)
+                    d["geometry"].append(e["geometry"])
+                    d["orientation"].append(c.bearing)
+                    d['lane_orientation'].append(e["lane_orientation"])
+                    d["orientation_confidence"].append(c.bearing_confidence)
+                    d["lane_width"].append(e["lane_width"])
+            else:
+                d["type"].append("crossing")
+                d["orientation"].append(c.bearing)
+                d["orientation_confidence"].append(c.bearing_confidence)
+                d["osm_id"].append(c.node_id)
+                d["geometry"].append(c.getGeometry())
+                d["has_island"].append(c.has_island)
+                d["nb_lanes_backward"].append(c.nb_lanes_backward)
+                d["nb_lanes_forward"].append(c.nb_lanes_forward)
+                d["lane_width"].append(c.lane_width)
 
         return geopandas.GeoDataFrame(d, crs=2154)
 

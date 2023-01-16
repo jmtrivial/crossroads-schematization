@@ -141,17 +141,40 @@ class Utils:
         return Utils.get_edges_buffered_by_osm(zip(polyline, polyline[1:]), osm, supplementary_width)
 
 
-    def evaluate_width_way(gEdge):
-        if "width" in gEdge and not re.match(r'^-?\d+(?:\.\d+)$', gEdge["width"]) is None:
-            return float(gEdge["width"])
-        elif "lanes" in gEdge:
+    def get_adjacent_road_edge(node, osm):
+        for n2 in osm[node]:
+            edge = osm[node][n2][0]
+            if Utils.is_roadway_edge(edge):
+                return edge
+        return None
+
+    def evaluate_way_composition(gEdge):
+        nb_forward = -1
+        nb_backward = -1
+        if "lanes:forward" in gEdge:
+            nb_forward = int(gEdge["lanes:forward"])
+        if "lanes:backward" in gEdge:
+            nb_backward = int(gEdge["lanes:backward"])
+
+        if "lanes" in gEdge:
             nb = int(gEdge["lanes"])
         else:
             if "oneway" in gEdge and gEdge["oneway"]:
                 nb = 1
             else:
                 nb = 2
-        
+
+        if nb_forward == -1:
+            if nb_backward == -1:
+                nb_backward = int(nb/2)
+            nb_forward = nb - nb_backward
+        elif nb_backward == -1:
+                nb_backward = nb - nb_backward
+        else:
+            if nb_backward + nb_forward != nb:
+                print("WARNING: number of lanes not coherent (", nb_backward, "+", nb_forward, "!=", nb)
+
+        # compute width
         if "highway" in gEdge:
             if gEdge["highway"] in ["motorway", "trunk"]:
                 width = 3.5
@@ -165,17 +188,24 @@ class Utils:
                 width = 2.75
         else:
             width = 3
-        
-        result = 0
+
         if ("cycleway" in gEdge and gEdge["cycleway"] == "track") or \
             ("cycleway:left" in gEdge and gEdge["cycleway:left"] == "track") or \
             ("cycleway:right" in gEdge and gEdge["cycleway:right"] == "track"):
             nb += 1 # ~ COVID tracks
+
+        return nb_backward, nb_forward, width
+
+    def evaluate_width_way(gEdge):
+        if "width" in gEdge and not re.match(r'^-?\d+(?:\.\d+)$', gEdge["width"]) is None:
+            return float(gEdge["width"])
+
+        nb_lanes_backward, nb_lanes_forward, lane_width = Utils.evaluate_way_composition(gEdge)
+        
+        result = (nb_lanes_backward + nb_lanes_forward) * lane_width
         if ("cycleway:right" in gEdge and gEdge["cycleway:right"] == "lane") or \
            ("cycleway:left" in gEdge and gEdge["cycleway:left"] == "lane"):
             result += 1 # one meter per cycle lane
-
-        result += nb * width
 
         return result
 

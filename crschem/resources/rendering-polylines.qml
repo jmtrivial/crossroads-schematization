@@ -1,18 +1,18 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis labelsEnabled="0" simplifyDrawingHints="1" simplifyMaxScale="1" simplifyLocal="1" version="3.28.1-Firenze" hasScaleBasedVisibilityFlag="0" symbologyReferenceScale="-1" readOnly="0" simplifyAlgorithm="0" simplifyDrawingTol="1" styleCategories="AllStyleCategories" maxScale="0" minScale="100000000">
+<qgis styleCategories="AllStyleCategories" simplifyDrawingTol="1" simplifyLocal="1" symbologyReferenceScale="-1" labelsEnabled="0" hasScaleBasedVisibilityFlag="0" simplifyDrawingHints="1" version="3.28.1-Firenze" readOnly="0" simplifyAlgorithm="0" maxScale="0" simplifyMaxScale="1" minScale="100000000">
   <flags>
     <Identifiable>1</Identifiable>
     <Removable>1</Removable>
     <Searchable>1</Searchable>
     <Private>0</Private>
   </flags>
-  <temporal accumulate="0" mode="0" endField="" durationField="" durationUnit="min" fixedDuration="0" startExpression="" limitMode="0" startField="" endExpression="" enabled="0">
+  <temporal startField="" accumulate="0" enabled="0" limitMode="0" endField="" endExpression="" startExpression="" durationUnit="min" fixedDuration="0" mode="0" durationField="">
     <fixedRange>
       <start></start>
       <end></end>
     </fixedRange>
   </temporal>
-  <elevation symbology="Line" zscale="1" showMarkerSymbolInSurfacePlots="0" extrusion="0" binding="Centroid" extrusionEnabled="0" type="IndividualFeatures" zoffset="0" clamping="Terrain" respectLayerSymbol="1">
+  <elevation extrusionEnabled="0" binding="Centroid" extrusion="0" clamping="Terrain" zscale="1" showMarkerSymbolInSurfacePlots="0" type="IndividualFeatures" symbology="Line" zoffset="0" respectLayerSymbol="1">
     <data-defined-properties>
       <Option type="Map">
         <Option value="" name="name" type="QString"/>
@@ -21,7 +21,7 @@
       </Option>
     </data-defined-properties>
     <profileLineSymbol>
-      <symbol is_animated="0" name="" type="line" alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10">
+      <symbol frame_rate="10" is_animated="0" name="" alpha="1" force_rhr="0" clip_to_extent="1" type="line">
         <data_defined_properties>
           <Option type="Map">
             <Option value="" name="name" type="QString"/>
@@ -29,7 +29,7 @@
             <Option value="collection" name="type" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer locked="0" class="SimpleLine" pass="0" enabled="1">
+        <layer enabled="1" class="SimpleLine" locked="0" pass="0">
           <Option type="Map">
             <Option value="0" name="align_dash_pattern" type="QString"/>
             <Option value="square" name="capstyle" type="QString"/>
@@ -70,7 +70,7 @@
       </symbol>
     </profileLineSymbol>
     <profileFillSymbol>
-      <symbol is_animated="0" name="" type="fill" alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10">
+      <symbol frame_rate="10" is_animated="0" name="" alpha="1" force_rhr="0" clip_to_extent="1" type="fill">
         <data_defined_properties>
           <Option type="Map">
             <Option value="" name="name" type="QString"/>
@@ -78,7 +78,7 @@
             <Option value="collection" name="type" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer locked="0" class="SimpleFill" pass="0" enabled="1">
+        <layer enabled="1" class="SimpleFill" locked="0" pass="0">
           <Option type="Map">
             <Option value="3x:0,0,0,0,0,0" name="border_width_map_unit_scale" type="QString"/>
             <Option value="231,113,72,255" name="color" type="QString"/>
@@ -103,7 +103,7 @@
       </symbol>
     </profileFillSymbol>
     <profileMarkerSymbol>
-      <symbol is_animated="0" name="" type="marker" alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10">
+      <symbol frame_rate="10" is_animated="0" name="" alpha="1" force_rhr="0" clip_to_extent="1" type="marker">
         <data_defined_properties>
           <Option type="Map">
             <Option value="" name="name" type="QString"/>
@@ -111,7 +111,7 @@
             <Option value="collection" name="type" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer locked="0" class="SimpleMarker" pass="0" enabled="1">
+        <layer enabled="1" class="SimpleMarker" locked="0" pass="0">
           <Option type="Map">
             <Option value="0" name="angle" type="QString"/>
             <Option value="square" name="cap_style" type="QString"/>
@@ -144,13 +144,14 @@
       </symbol>
     </profileMarkerSymbol>
   </elevation>
-  <renderer-v2 symbollevels="0" referencescale="-1" enableorderby="0" type="RuleRenderer" forceraster="0">
+  <renderer-v2 referencescale="-1" enableorderby="0" symbollevels="0" type="RuleRenderer" forceraster="0">
     <rules key="{10c04e36-1f3c-47ce-a20c-814053aa328e}">
-      <rule key="{38998ecf-7530-493b-82c6-266aa0043930}" symbol="0" filter="&quot;type&quot; = 'sidewalk'&#xa;"/>
-      <rule key="{55a6b343-2d1a-4d4a-827b-203352a19e12}" symbol="1" filter="&quot;type&quot; = 'traffic_island'"/>
+      <rule scalemaxdenom="300" symbol="0" key="{38998ecf-7530-493b-82c6-266aa0043930}" scalemindenom="1" filter="&quot;type&quot; = 'sidewalk'&#xa;"/>
+      <rule scalemaxdenom="100000" symbol="1" key="{0c0e568c-4c6e-4dad-9806-53a8c920f4a6}" scalemindenom="300" filter="&quot;type&quot;='sidewalk'"/>
+      <rule symbol="2" key="{55a6b343-2d1a-4d4a-827b-203352a19e12}" filter="&quot;type&quot; = 'traffic_island'"/>
     </rules>
     <symbols>
-      <symbol is_animated="0" name="0" type="line" alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10">
+      <symbol frame_rate="10" is_animated="0" name="0" alpha="1" force_rhr="0" clip_to_extent="1" type="line">
         <data_defined_properties>
           <Option type="Map">
             <Option value="" name="name" type="QString"/>
@@ -158,10 +159,10 @@
             <Option value="collection" name="type" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer locked="0" class="SimpleLine" pass="0" enabled="1">
+        <layer enabled="1" class="SimpleLine" locked="0" pass="0">
           <Option type="Map">
             <Option value="0" name="align_dash_pattern" type="QString"/>
-            <Option value="square" name="capstyle" type="QString"/>
+            <Option value="round" name="capstyle" type="QString"/>
             <Option value="5;2" name="customdash" type="QString"/>
             <Option value="3x:0,0,0,0,0,0" name="customdash_map_unit_scale" type="QString"/>
             <Option value="MM" name="customdash_unit" type="QString"/>
@@ -169,10 +170,10 @@
             <Option value="3x:0,0,0,0,0,0" name="dash_pattern_offset_map_unit_scale" type="QString"/>
             <Option value="MM" name="dash_pattern_offset_unit" type="QString"/>
             <Option value="0" name="draw_inside_polygon" type="QString"/>
-            <Option value="bevel" name="joinstyle" type="QString"/>
-            <Option value="255,255,255,255" name="line_color" type="QString"/>
+            <Option value="round" name="joinstyle" type="QString"/>
+            <Option value="0,0,0,255" name="line_color" type="QString"/>
             <Option value="solid" name="line_style" type="QString"/>
-            <Option value="8" name="line_width" type="QString"/>
+            <Option value="4" name="line_width" type="QString"/>
             <Option value="MM" name="line_width_unit" type="QString"/>
             <Option value="0" name="offset" type="QString"/>
             <Option value="3x:0,0,0,0,0,0" name="offset_map_unit_scale" type="QString"/>
@@ -196,7 +197,16 @@
             </Option>
           </data_defined_properties>
         </layer>
-        <layer locked="0" class="SimpleLine" pass="0" enabled="1">
+      </symbol>
+      <symbol frame_rate="10" is_animated="0" name="1" alpha="1" force_rhr="0" clip_to_extent="1" type="line">
+        <data_defined_properties>
+          <Option type="Map">
+            <Option value="" name="name" type="QString"/>
+            <Option name="properties"/>
+            <Option value="collection" name="type" type="QString"/>
+          </Option>
+        </data_defined_properties>
+        <layer enabled="1" class="SimpleLine" locked="0" pass="0">
           <Option type="Map">
             <Option value="0" name="align_dash_pattern" type="QString"/>
             <Option value="round" name="capstyle" type="QString"/>
@@ -235,7 +245,7 @@
           </data_defined_properties>
         </layer>
       </symbol>
-      <symbol is_animated="0" name="1" type="line" alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10">
+      <symbol frame_rate="10" is_animated="0" name="2" alpha="1" force_rhr="0" clip_to_extent="1" type="line">
         <data_defined_properties>
           <Option type="Map">
             <Option value="" name="name" type="QString"/>
@@ -243,45 +253,7 @@
             <Option value="collection" name="type" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer locked="0" class="SimpleLine" pass="0" enabled="1">
-          <Option type="Map">
-            <Option value="0" name="align_dash_pattern" type="QString"/>
-            <Option value="round" name="capstyle" type="QString"/>
-            <Option value="5;2" name="customdash" type="QString"/>
-            <Option value="3x:0,0,0,0,0,0" name="customdash_map_unit_scale" type="QString"/>
-            <Option value="MM" name="customdash_unit" type="QString"/>
-            <Option value="0" name="dash_pattern_offset" type="QString"/>
-            <Option value="3x:0,0,0,0,0,0" name="dash_pattern_offset_map_unit_scale" type="QString"/>
-            <Option value="MM" name="dash_pattern_offset_unit" type="QString"/>
-            <Option value="0" name="draw_inside_polygon" type="QString"/>
-            <Option value="round" name="joinstyle" type="QString"/>
-            <Option value="255,255,255,255" name="line_color" type="QString"/>
-            <Option value="solid" name="line_style" type="QString"/>
-            <Option value="10" name="line_width" type="QString"/>
-            <Option value="MM" name="line_width_unit" type="QString"/>
-            <Option value="0" name="offset" type="QString"/>
-            <Option value="3x:0,0,0,0,0,0" name="offset_map_unit_scale" type="QString"/>
-            <Option value="MM" name="offset_unit" type="QString"/>
-            <Option value="0" name="ring_filter" type="QString"/>
-            <Option value="0" name="trim_distance_end" type="QString"/>
-            <Option value="3x:0,0,0,0,0,0" name="trim_distance_end_map_unit_scale" type="QString"/>
-            <Option value="MM" name="trim_distance_end_unit" type="QString"/>
-            <Option value="0" name="trim_distance_start" type="QString"/>
-            <Option value="3x:0,0,0,0,0,0" name="trim_distance_start_map_unit_scale" type="QString"/>
-            <Option value="MM" name="trim_distance_start_unit" type="QString"/>
-            <Option value="0" name="tweak_dash_pattern_on_corners" type="QString"/>
-            <Option value="0" name="use_custom_dash" type="QString"/>
-            <Option value="3x:0,0,0,0,0,0" name="width_map_unit_scale" type="QString"/>
-          </Option>
-          <data_defined_properties>
-            <Option type="Map">
-              <Option value="" name="name" type="QString"/>
-              <Option name="properties"/>
-              <Option value="collection" name="type" type="QString"/>
-            </Option>
-          </data_defined_properties>
-        </layer>
-        <layer locked="0" class="SimpleLine" pass="0" enabled="1">
+        <layer enabled="1" class="SimpleLine" locked="0" pass="0">
           <Option type="Map">
             <Option value="0" name="align_dash_pattern" type="QString"/>
             <Option value="round" name="capstyle" type="QString"/>
@@ -336,11 +308,11 @@
   <featureBlendMode>0</featureBlendMode>
   <layerOpacity>1</layerOpacity>
   <SingleCategoryDiagramRenderer attributeLegend="1" diagramType="Histogram">
-    <DiagramCategory opacity="1" backgroundColor="#ffffff" barWidth="5" spacingUnitScale="3x:0,0,0,0,0,0" sizeScale="3x:0,0,0,0,0,0" penWidth="0" sizeType="MM" spacingUnit="MM" lineSizeType="MM" spacing="5" direction="0" maxScaleDenominator="1e+08" penAlpha="255" rotationOffset="270" enabled="0" backgroundAlpha="255" labelPlacementMethod="XHeight" diagramOrientation="Up" minimumSize="0" minScaleDenominator="0" showAxis="1" scaleBasedVisibility="0" width="15" scaleDependency="Area" height="15" penColor="#000000" lineSizeScale="3x:0,0,0,0,0,0">
-      <fontProperties bold="0" style="" description="Noto Sans,10,-1,0,50,0,0,0,0,0" italic="0" underline="0" strikethrough="0"/>
-      <attribute colorOpacity="1" label="" field="" color="#000000"/>
+    <DiagramCategory backgroundAlpha="255" labelPlacementMethod="XHeight" sizeScale="3x:0,0,0,0,0,0" lineSizeScale="3x:0,0,0,0,0,0" penColor="#000000" minScaleDenominator="0" scaleBasedVisibility="0" opacity="1" barWidth="5" direction="0" penAlpha="255" width="15" scaleDependency="Area" sizeType="MM" spacingUnit="MM" spacingUnitScale="3x:0,0,0,0,0,0" showAxis="1" height="15" diagramOrientation="Up" penWidth="0" lineSizeType="MM" minimumSize="0" enabled="0" backgroundColor="#ffffff" spacing="5" maxScaleDenominator="1e+08" rotationOffset="270">
+      <fontProperties description="Noto Sans,10,-1,0,50,0,0,0,0,0" style="" strikethrough="0" underline="0" italic="0" bold="0"/>
+      <attribute field="" color="#000000" label="" colorOpacity="1"/>
       <axisSymbol>
-        <symbol is_animated="0" name="" type="line" alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10">
+        <symbol frame_rate="10" is_animated="0" name="" alpha="1" force_rhr="0" clip_to_extent="1" type="line">
           <data_defined_properties>
             <Option type="Map">
               <Option value="" name="name" type="QString"/>
@@ -348,7 +320,7 @@
               <Option value="collection" name="type" type="QString"/>
             </Option>
           </data_defined_properties>
-          <layer locked="0" class="SimpleLine" pass="0" enabled="1">
+          <layer enabled="1" class="SimpleLine" locked="0" pass="0">
             <Option type="Map">
               <Option value="0" name="align_dash_pattern" type="QString"/>
               <Option value="square" name="capstyle" type="QString"/>
@@ -390,7 +362,7 @@
       </axisSymbol>
     </DiagramCategory>
   </SingleCategoryDiagramRenderer>
-  <DiagramLayerSettings placement="2" linePlacementFlags="18" obstacle="0" priority="0" zIndex="0" showAll="1" dist="0">
+  <DiagramLayerSettings dist="0" showAll="1" linePlacementFlags="18" obstacle="0" priority="0" placement="2" zIndex="0">
     <properties>
       <Option type="Map">
         <Option value="" name="name" type="QString"/>
@@ -403,7 +375,7 @@
     <activeChecks/>
     <checkConfiguration/>
   </geometryOptions>
-  <legend type="default-vector" showLabelLegend="0"/>
+  <legend showLabelLegend="0" type="default-vector"/>
   <referencedLayers/>
   <fieldConfiguration>
     <field name="type" configurationFlags="None">
@@ -434,8 +406,15 @@
         </config>
       </editWidget>
     </field>
-    <field name="angle" configurationFlags="None">
-      <editWidget type="Range">
+    <field name="lane_width" configurationFlags="None">
+      <editWidget type="TextEdit">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field name="lane_orientation" configurationFlags="None">
+      <editWidget type="TextEdit">
         <config>
           <Option/>
         </config>
@@ -443,45 +422,50 @@
     </field>
   </fieldConfiguration>
   <aliases>
-    <alias index="0" name="" field="type"/>
-    <alias index="1" name="" field="osm_id"/>
-    <alias index="2" name="" field="orientation"/>
-    <alias index="3" name="" field="orientation_confidence"/>
-    <alias index="4" name="" field="angle"/>
+    <alias field="type" name="" index="0"/>
+    <alias field="osm_id" name="" index="1"/>
+    <alias field="orientation" name="" index="2"/>
+    <alias field="orientation_confidence" name="" index="3"/>
+    <alias field="lane_width" name="" index="4"/>
+    <alias field="lane_orientation" name="" index="5"/>
   </aliases>
   <defaults>
-    <default expression="" applyOnUpdate="0" field="type"/>
-    <default expression="" applyOnUpdate="0" field="osm_id"/>
-    <default expression="" applyOnUpdate="0" field="orientation"/>
-    <default expression="" applyOnUpdate="0" field="orientation_confidence"/>
-    <default expression="" applyOnUpdate="0" field="angle"/>
+    <default field="type" applyOnUpdate="0" expression=""/>
+    <default field="osm_id" applyOnUpdate="0" expression=""/>
+    <default field="orientation" applyOnUpdate="0" expression=""/>
+    <default field="orientation_confidence" applyOnUpdate="0" expression=""/>
+    <default field="lane_width" applyOnUpdate="0" expression=""/>
+    <default field="lane_orientation" applyOnUpdate="0" expression=""/>
   </defaults>
   <constraints>
-    <constraint constraints="0" unique_strength="0" exp_strength="0" notnull_strength="0" field="type"/>
-    <constraint constraints="0" unique_strength="0" exp_strength="0" notnull_strength="0" field="osm_id"/>
-    <constraint constraints="0" unique_strength="0" exp_strength="0" notnull_strength="0" field="orientation"/>
-    <constraint constraints="0" unique_strength="0" exp_strength="0" notnull_strength="0" field="orientation_confidence"/>
-    <constraint constraints="0" unique_strength="0" exp_strength="0" notnull_strength="0" field="angle"/>
+    <constraint field="type" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
+    <constraint field="osm_id" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
+    <constraint field="orientation" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
+    <constraint field="orientation_confidence" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
+    <constraint field="lane_width" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
+    <constraint field="lane_orientation" constraints="0" exp_strength="0" unique_strength="0" notnull_strength="0"/>
   </constraints>
   <constraintExpressions>
     <constraint field="type" exp="" desc=""/>
     <constraint field="osm_id" exp="" desc=""/>
     <constraint field="orientation" exp="" desc=""/>
     <constraint field="orientation_confidence" exp="" desc=""/>
-    <constraint field="angle" exp="" desc=""/>
+    <constraint field="lane_width" exp="" desc=""/>
+    <constraint field="lane_orientation" exp="" desc=""/>
   </constraintExpressions>
   <expressionfields/>
   <attributeactions>
-    <defaultAction key="Canvas" value="{00000000-0000-0000-0000-000000000000}"/>
+    <defaultAction value="{00000000-0000-0000-0000-000000000000}" key="Canvas"/>
   </attributeactions>
   <attributetableconfig actionWidgetStyle="dropDown" sortOrder="0" sortExpression="">
     <columns>
-      <column name="type" type="field" hidden="0" width="377"/>
-      <column name="osm_id" type="field" hidden="0" width="-1"/>
-      <column name="orientation" type="field" hidden="0" width="-1"/>
-      <column name="orientation_confidence" type="field" hidden="0" width="-1"/>
-      <column name="angle" type="field" hidden="0" width="-1"/>
-      <column type="actions" hidden="1" width="-1"/>
+      <column hidden="0" name="type" width="377" type="field"/>
+      <column hidden="0" name="osm_id" width="-1" type="field"/>
+      <column hidden="0" name="orientation" width="-1" type="field"/>
+      <column hidden="0" name="orientation_confidence" width="-1" type="field"/>
+      <column hidden="0" name="lane_orientation" width="-1" type="field"/>
+      <column hidden="0" name="lane_width" width="-1" type="field"/>
+      <column hidden="1" width="-1" type="actions"/>
     </columns>
   </attributetableconfig>
   <conditionalstyles>
@@ -513,25 +497,34 @@ def my_form_open(dialog, layer, feature):
   <featformsuppress>0</featformsuppress>
   <editorlayout>generatedlayout</editorlayout>
   <editable>
-    <field editable="1" name="angle"/>
-    <field editable="1" name="orientation"/>
-    <field editable="1" name="orientation_confidence"/>
-    <field editable="1" name="osm_id"/>
-    <field editable="1" name="type"/>
+    <field name="angle" editable="1"/>
+    <field name="fid" editable="1"/>
+    <field name="lane_orientation" editable="1"/>
+    <field name="lane_width" editable="1"/>
+    <field name="orientation" editable="1"/>
+    <field name="orientation_confidence" editable="1"/>
+    <field name="osm_id" editable="1"/>
+    <field name="type" editable="1"/>
   </editable>
   <labelOnTop>
-    <field name="angle" labelOnTop="0"/>
-    <field name="orientation" labelOnTop="0"/>
-    <field name="orientation_confidence" labelOnTop="0"/>
-    <field name="osm_id" labelOnTop="0"/>
-    <field name="type" labelOnTop="0"/>
+    <field labelOnTop="0" name="angle"/>
+    <field labelOnTop="0" name="fid"/>
+    <field labelOnTop="0" name="lane_orientation"/>
+    <field labelOnTop="0" name="lane_width"/>
+    <field labelOnTop="0" name="orientation"/>
+    <field labelOnTop="0" name="orientation_confidence"/>
+    <field labelOnTop="0" name="osm_id"/>
+    <field labelOnTop="0" name="type"/>
   </labelOnTop>
   <reuseLastValue>
-    <field reuseLastValue="0" name="angle"/>
-    <field reuseLastValue="0" name="orientation"/>
-    <field reuseLastValue="0" name="orientation_confidence"/>
-    <field reuseLastValue="0" name="osm_id"/>
-    <field reuseLastValue="0" name="type"/>
+    <field name="angle" reuseLastValue="0"/>
+    <field name="fid" reuseLastValue="0"/>
+    <field name="lane_orientation" reuseLastValue="0"/>
+    <field name="lane_width" reuseLastValue="0"/>
+    <field name="orientation" reuseLastValue="0"/>
+    <field name="orientation_confidence" reuseLastValue="0"/>
+    <field name="osm_id" reuseLastValue="0"/>
+    <field name="type" reuseLastValue="0"/>
   </reuseLastValue>
   <dataDefinedFieldProperties/>
   <widgets/>

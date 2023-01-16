@@ -317,8 +317,8 @@ class CrossroadSchematization:
             self.traffic_islands.append(c.TrafficIsland(traffic_islands_edges[eid], self.osm_input, self.cr_input))
 
 
-    def to_printable_internal(self, filename, log_files, dpi = -1, crs = 3857):
-        from qgis.core import QgsApplication, QgsProject, QgsPrintLayout, QgsLayout, QgsVectorLayer, QgsLayoutExporter, QgsLayoutItemPage, QgsReadWriteContext, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform
+    def to_printable_internal(self, filename, log_files, dpi = -1, crs = 2154):
+        from qgis.core import QgsApplication, QgsProject, QgsPrintLayout, QgsLayout, QgsVectorLayer, QgsLayoutExporter, QgsLayoutItemPage, QgsReadWriteContext, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsFeatureRequest, QgsExpression
         from qgis.PyQt.QtXml import QDomDocument
         import tempfile
         import os
@@ -335,19 +335,25 @@ class CrossroadSchematization:
         
         # load layers
         geojson = tmp.name
-        points_layer = QgsVectorLayer(geojson + '|geometrytype=Point', "points", "ogr")
+        points_crossings_layer = QgsVectorLayer(geojson + '|geometrytype=Point', "points", "ogr")
+        points_islands_layer = QgsVectorLayer(geojson + '|geometrytype=Point', "points", "ogr")
+        points_space_layer = QgsVectorLayer(geojson + '|geometrytype=Point', "points", "ogr")
         lines_layer = QgsVectorLayer(geojson + '|geometrytype=LineString', "lines", "ogr")
+        lines_space_layer = QgsVectorLayer(geojson + '|geometrytype=LineString', "lines", "ogr")
         polygons_layer = QgsVectorLayer(geojson + '|geometrytype=Polygon', "polygons", "ogr") # 4326
         # project them on map
         project.addMapLayer(polygons_layer)
+        project.addMapLayer(lines_space_layer)
+        project.addMapLayer(points_space_layer)
+        project.addMapLayer(points_crossings_layer)
+        project.addMapLayer(points_islands_layer)
         project.addMapLayer(lines_layer)
-        project.addMapLayer(points_layer)
 
         # compute region of interest
         polygons_layer.selectAll() # the polygon corresponding to the car ways
         pg_box = polygons_layer.boundingBoxOfSelected()
-        points_layer.selectByRect(pg_box) # only keep points inside (crossings, islands)
-        pt_box = points_layer.boundingBoxOfSelected()
+        points_space_layer.selectByRect(pg_box) # only keep points inside (crossings, islands)
+        pt_box = points_space_layer.boundingBoxOfSelected()
         # then combine both rectangles to zoom on the points within the main region
         pp = 2
         pb = 1
@@ -384,12 +390,18 @@ class CrossroadSchematization:
         os.chdir(os.path.dirname(__file__))
 
         # load layer styles and assign them to the layers
-        points_style = os.path.dirname(__file__) + "/resources/rendering-nodes.qml" # TODO: integrate them for pipe
+        points_islands_style = os.path.dirname(__file__) + "/resources/rendering-nodes-islands.qml" # TODO: integrate them for pipe
+        points_crossings_style = os.path.dirname(__file__) + "/resources/rendering-nodes-crossings.qml"
+        points_space_style = os.path.dirname(__file__) + "/resources/rendering-nodes-space.qml"
         lines_style = os.path.dirname(__file__) + "/resources/rendering-polylines.qml"
         polygons_style = os.path.dirname(__file__) + "/resources/rendering-areas.qml" # sld
+        lines_space_style = os.path.dirname(__file__) + "/resources/rendering-polylines-space.qml"
         
-        points_layer.loadNamedStyle(points_style)
         lines_layer.loadNamedStyle(lines_style)
+        points_space_layer.loadNamedStyle(points_space_style)
+        points_crossings_layer.loadNamedStyle(points_crossings_style)
+        points_islands_layer.loadNamedStyle(points_islands_style)
+        lines_space_layer.loadNamedStyle(lines_space_style)
         polygons_layer.loadNamedStyle(polygons_style)
         
         exporter = QgsLayoutExporter(layout)
