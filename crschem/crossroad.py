@@ -204,6 +204,8 @@ class StraightSidewalk:
 
 class TurningSidewalk:
 
+    # TODO: add a supplementary point of pedestrian crossings in the turn (./example-pdf.sh 10)
+
     def __init__(self, str_sidewalks, osm_input, distance_kerb_footway):
         self.distance_kerb_footway = distance_kerb_footway
 
@@ -580,6 +582,8 @@ class TrafficIsland:
         # compute crossing's center
         self.compute_center_and_radius(crossings)
 
+        # TODO: if it's a a large region, build a polygon (./example-pdf.sh 13)
+
         if self.is_reachable:
             #compute supplementary edges if some of points of the polygons are far from the center
             self.compute_edges(crossings, inner_region)
@@ -588,6 +592,7 @@ class TrafficIsland:
 
 
     def getGeometry(self):
+        # TODO: alternative geometry in case of a polygon (cf compute_generalization)
         if len(self.extremities) == 0:
             return [Point(self.center)]
         else:
@@ -600,6 +605,7 @@ class TrafficIsland:
         for t in traffic_islands:
             if t.is_reachable or not only_reachable:
                 geom = t.getGeometry()
+                # TODO: add supplementary attribute to distinguish between a polygon and a more generalized island (cf compute_generalization)
                 for g in geom:
                     d["type"].append("traffic_island")
                     d["osm_id"].append(";".join(map(str, t.polygon)))
