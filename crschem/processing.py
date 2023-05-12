@@ -70,7 +70,7 @@ class Expander:
         p1, p2, p3 = pts
         if len(G[p2]) > 2:
             return True
-        angle = u.Utils.turn_angle(G, p1, p2, p3)
+        angle = u.Utils.turn_angle(G, p2, p1, p3)
         if angle > 180:
             angle = 360 - angle 
         if abs(angle) > 30:
@@ -111,8 +111,8 @@ class Expander:
         return LineString([Point(G.nodes[x]["x"], G.nodes[x]["y"]) for x in polyline])
 
 
-    def is_turn(G, c1, m, c2):
-        ta = u.Utils.turn_angle(G, c1, m, c2)
+    def is_turn(G, m, c1, c2):
+        ta = u.Utils.turn_angle(G, m, c1, c2)
         return ta < 90 or ta > 90 * 3
 
 
@@ -146,7 +146,7 @@ class Expander:
         elif len(other) == 1:
             return other[0]
         else:
-            sorted_other = sorted(other, key=lambda n: u.Utils.turn_angle(G, n1, n2, n), reverse=not left_first)
+            sorted_other = sorted(other, key=lambda n: u.Utils.turn_angle(G, n2, n1, n), reverse=not left_first)
             return sorted_other[0]
 
 
