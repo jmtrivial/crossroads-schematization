@@ -209,9 +209,8 @@ class Utils:
 
         return result
 
-
     def get_initial_node_tags(cr_input, osm_n1):
-        is_n = cr_input["id"] == str(osm_n1)
+        is_n = cr_input["osm_node_id"] == str(osm_n1)
         filtered = cr_input[is_n]
         if len(filtered) > 0:
             return filtered.iloc[0, :].to_dict()
@@ -220,15 +219,13 @@ class Utils:
 
 
     def get_initial_edge_tags(cr_input, osm_n1, osm_n2, inverse = False):
-        is_w = cr_input["id"] == str(osm_n1) + ";" + str(osm_n2)
-        filtered = cr_input[is_w]
-        if len(filtered) > 0:
-            return filtered.iloc[0, :].to_dict()
+        for index, row in cr_input.iterrows():
+            if row["osm_node_ids"] == [str(osm_n1), str(osm_n2)]:
+                return row.to_dict()
+        if inverse:
+            return Utils.get_initial_edge_tags(cr_input, osm_n1, osm_n2, False)
         else:
-            if inverse:
-                return Utils.get_initial_edge_tags(cr_input, osm_n1, osm_n2, False)
-            else:
-                return None
+            return None
 
 
     def pathid_to_pathcoords(path, osm):

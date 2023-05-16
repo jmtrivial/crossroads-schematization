@@ -194,7 +194,7 @@ class CrossroadSchematization:
         networkx.set_node_attributes(self.osm_input, values="unknown", name="type")
         for index, elem in self.cr_input.iterrows():
             if elem["type"] in ["branch", "way"]:
-                ids = list(map(int, elem["id"].split(";")))
+                ids = list(map(int, elem["osm_node_ids"]))
                 self.osm_input[ids[0]][ids[1]][0]["type"] = elem["type"]
                 self.osm_input[ids[0]][ids[1]][0]["type_origin"] = "input"
                 self.osm_input.nodes[ids[0]]["type"] = "input"
@@ -215,17 +215,18 @@ class CrossroadSchematization:
         bid = 0
         for index, elem in self.cr_input.iterrows():
             if elem["type"] == "branch":
-                ids = list(map(int, elem["id"].split(";")))
+                ids = list(map(int, elem["osm_node_ids"]))
                 osm_n1 = ids[0] # first id in the OSM direction
                 osm_n2 = ids[1] # last id in the OSM direction
                 n1 = osm_n1 if self.is_boundary_node(osm_n1) else osm_n2
                 n2 = osm_n2 if n1 == osm_n1 else osm_n1
                 e = u.Utils.get_initial_edge_tags(self.cr_input, osm_n1, osm_n2)
                 if e is not None:
-                    bname = e["name"].split("|")[0]
-                    if not bname in self.branches:
-                        self.branches[bname] = c.Branch(bname, self.osm_input, self.cr_input, self.distance_kerb_footway)
-                    self.branches[bname].add_way(c.SimpleWay(n1, n2, e, osm_n1 == n1,
+                    id = e["id"]
+                    bname = e["name"]
+                    if not id in self.branches:
+                        self.branches[id] = c.Branch(bname, id, self.osm_input, self.cr_input, self.distance_kerb_footway)
+                    self.branches[id].add_way(c.SimpleWay(n1, n2, e, osm_n1 == n1,
                                                         c.Crossing.is_crossing(n1, self.cr_input)))
 
 
@@ -248,13 +249,11 @@ class CrossroadSchematization:
 
     def get_sidewalks_by_id(self, sid):
         result = []
-
         for bid in self.sidewalks:
             if self.sidewalks[bid]:
                 for sw in self.sidewalks[bid]:
                     if sw.sidewalk_id() == sid:
                         result.append(sw)
-        
         return result
 
     def assemble_sidewalks(self):
@@ -274,14 +273,14 @@ class CrossroadSchematization:
         # order sidewalks
         final_shape = [(open_sides.pop(), True)]
         while len(open_sides) != 0:
-            cid = final_shape[-1][0].branch_names()[1 if final_shape[-1][1] else 0]
+            cid = final_shape[-1][0].branch_ids()[1 if final_shape[-1][1] else 0]
             found = False
             for i, o in enumerate(open_sides):
-                if o.branch_names()[0] == cid:
+                if o.branch_ids()[0] == cid:
                     final_shape.append((open_sides.pop(i), True))
                     found = True
                     break
-                elif o.branch_names()[1] == cid:
+                elif o.branch_ids()[1] == cid:
                     final_shape.append((open_sides.pop(i), False))
                     found = True
                     break

@@ -59,6 +59,7 @@ RAS
 
 ### Carrefour de Gauthier : 45.77727 3.09615
 
+CRASH: index error island_id (pas de sidewalks)
 * les deux voies au sud ne sont pas les mêmes, et le départ de la voie la plus à l'est est très en intérieur du carrefour
 * problème positionnement de trottoir à l'ouest
 
@@ -75,20 +76,21 @@ RAS
 
 ### Comptoir Irlandais : 45.77674 3.07708
 
-RAS
+
+RAS, même si les trottoirs sont assez biseautés, ça ressemble à ça
 
 ### Carrefour de Marlène : 45.78096 3.07622 --c1 4 --c2 5
 
+* au niveau des passages piétons, le trottoirs s'en éloigne tout de même beaucoup 
 * L'îlot pourrait être surfacique
 
 ### Galaxie : 45.78220 3.07278
 
-* Un îlot trop grand vers l'intérieur (est-ce qu'on réduit bien la longueur suivant la largeur réelle des voies ?)
+RAS, même si un îlot est très grand vers l'intérieur (lié au tracé des voies qui est construit en étoile)
 
 ### Les p'tits débrouillards : 45.78300 3.07844
 
-BUG: Un node passage piéton à 4 ways : https://www.openstreetmap.org/node/1036743876
-
+* il manque plein de passages piétons
 ### Carrefour Liève : 45.78191 3.09890
 
 RAS
@@ -97,11 +99,9 @@ RAS
 
 RAS
 
-### Rond-point Aubière : 45.75888 3.10164
+### Rond-point Aubière : 45.75888 3.10164 --c1 4 --c2 5
 
-BUG: crash
-
-* Auparavant: Un îlot qui manque à l'ouest car il n'y a pas de passage piéton
+* il manque plein de passages piétons
 
 ### Carrefour du tram : 45.78750 3.10580 --c1 4 --c0 3
 

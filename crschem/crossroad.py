@@ -32,16 +32,22 @@ class SimpleWay:
         return self.edge_tags["left_sidewalk"] != "" or self.edge_tags["right_sidewalk"] != ""
 
 
+    def is_number(value):
+        if isinstance(value, str):
+            return value != ""
+        else:
+            return not math.isnan(value)
+
     def get_sidewalk_id(self):
-        if self.edge_tags["left_sidewalk"] != "":
+        if SimpleWay.is_number(self.edge_tags["left_sidewalk"]):
             return self.edge_tags["left_sidewalk"]
-        elif self.edge_tags["right_sidewalk"] != "":
+        elif SimpleWay.is_number(self.edge_tags["right_sidewalk"]):
             return self.edge_tags["right_sidewalk"]
         else:
             return ""
 
     def has_sidewalks_both_sides(self):
-        return self.edge_tags["left_sidewalk"] != "" and self.edge_tags["right_sidewalk"] != ""
+        return SimpleWay.is_number(self.edge_tags["left_sidewalk"]) and SimpleWay.is_number(self.edge_tags["right_sidewalk"])
 
 
     def is_crossing_inner_node(self):
@@ -199,7 +205,7 @@ class StraightSidewalk:
 
 
     def getOSMIds(self):
-        return self.description["id"]
+        return ";".join(self.description["osm_node_ids"])
 
 
 class TurningSidewalk:
@@ -246,8 +252,8 @@ class TurningSidewalk:
                 self.build_beveled_turn(nearest[1])
 
 
-    def branch_names(self):
-        return [x.description["name"] for x in self.str_sidewalks]
+    def branch_ids(self):
+        return [x.description["id"] for x in self.str_sidewalks]
     
 
     def sidewalk_id(self):
@@ -815,9 +821,10 @@ class Crossing:
 
 class Branch:
 
-    def __init__(self, name, osm_input, cr_input, distance_kerb_footway):
+    def __init__(self, name, id, osm_input, cr_input, distance_kerb_footway):
         self.ways = []
         self.name = name
+        self.id = id
         self.osm_input = osm_input
         self.cr_input = cr_input
         self.distance_kerb_footway = distance_kerb_footway
@@ -837,7 +844,7 @@ class Branch:
         result = []
         for index, elem in self.cr_input.iterrows():
             if elem["type"] in ["branch", "way"] and elem["name"] != self.name:
-                ids = list(map(int, elem["id"].split(";")))
+                ids = list(map(int, elem["osm_node_ids"]))
                 result.append(ids)
         return result
 
@@ -857,12 +864,12 @@ class Branch:
                                    self.sides[1].same_osm_orientation,
                                    "right",
                                    self.sides[1].is_crossing_inner_node())]
-
         buf = u.Utils.get_edges_buffered_by_osm(self.get_other_edges(), self.osm_input, self.distance_kerb_footway).boundary
         for i, s in enumerate(result):
-            intersections = s.edge.intersection(buf)
-            if not intersections.is_empty and isinstance(intersections, Point):
-                result[i].update_first_node(intersections)
+            if s.edge.intersects(buf):
+                intersections = s.edge.intersection(buf)
+                if not intersections.is_empty and isinstance(intersections, Point):
+                    result[i].update_first_node(intersections)
 
         return result
 
