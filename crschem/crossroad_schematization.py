@@ -30,7 +30,8 @@ class CrossroadSchematization:
         #sidewalk informations
         'kerb',
         #island informations
-        'crossing:island'
+        'crossing:island',
+        'foot'
     ]
 
     # If the OSM data has been previously loaded, do not load it again
