@@ -493,8 +493,6 @@ class TrafficIsland:
         outside = list(locate(edges, lambda e: not u.Utils.edge_in_osm(e[0], e[1], self.osm_input)))
 
         if len(outside) != 0:
-            print(outside)
-            print(section)
             side1 = section[0:outside[0] + 1]
             side2 = section[outside[-1] + 1:]
             side2.reverse()
