@@ -29,7 +29,7 @@ class SimpleWay:
 
 
     def has_sidewalk(self):
-        return self.edge_tags["left_sidewalk"] != "" or self.edge_tags["right_sidewalk"] != ""
+        return SimpleWay.is_number(self.edge_tags["left_sidewalk"]) or SimpleWay.is_number(self.edge_tags["right_sidewalk"])
 
 
     def is_number(value):
@@ -472,7 +472,6 @@ class TrafficIsland:
 
 
     def get_straight_island_direction(self, polylines):
-        
         # linearize the two polylines
         lz = p.Linearization(length=50, initial_step=0.5, exponential_coef=1.2)
         ll1 = lz.process(LineString(polylines[0]))
@@ -495,8 +494,9 @@ class TrafficIsland:
         outside = list(locate(edges, lambda e: not u.Utils.edge_in_osm(e[0], e[1], self.osm_input)))
 
         if len(outside) != 0:
+            print(outside)
             side1 = section[0:outside[0] + 1]
-            side2 = section[outside[-1] + 1:]
+            side2 = section[outside[-1]:]
             side2.reverse()
             return u.Utils.pathid_to_pathcoords(side1, self.osm_input), u.Utils.pathid_to_pathcoords(side2, self.osm_input)
         else:
