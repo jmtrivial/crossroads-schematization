@@ -400,7 +400,6 @@ class TrafficIsland:
 
 
     def get_border_sections(self, crossings):
-
         c_in_poly = [i for i, x in enumerate(self.polygon) if x in crossings.keys()]
         if len(c_in_poly) == 0:
             print("Error: cannot have an island without crossing at this stage")
@@ -495,8 +494,9 @@ class TrafficIsland:
 
         if len(outside) != 0:
             print(outside)
+            print(section)
             side1 = section[0:outside[0] + 1]
-            side2 = section[outside[-1]:]
+            side2 = section[outside[-1] + 1:]
             side2.reverse()
             return u.Utils.pathid_to_pathcoords(side1, self.osm_input), u.Utils.pathid_to_pathcoords(side2, self.osm_input)
         else:

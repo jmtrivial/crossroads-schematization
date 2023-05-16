@@ -308,7 +308,7 @@ class CrossroadSchematization:
                     if not id is None:
                         if not id in traffic_islands_edges:
                             traffic_islands_edges[id] = []
-                        traffic_islands_edges[id].append(elem["id"])
+                        traffic_islands_edges[id].append(";".join(elem["osm_node_ids"]))
         
         # then build traffic islands
         self.traffic_islands = []
