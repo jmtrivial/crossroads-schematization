@@ -210,12 +210,16 @@ class Utils:
         return result
 
     def get_initial_node_tags(cr_input, osm_n1):
-        is_n = cr_input["osm_node_id"] == str(osm_n1)
-        filtered = cr_input[is_n]
-        if len(filtered) > 0:
-            return filtered.iloc[0, :].to_dict()
+        if "osm_node_id" in cr_input.columns.tolist():
+            is_n = cr_input["osm_node_id"] == str(osm_n1)
+            filtered = cr_input[is_n]
+            if len(filtered) > 0:
+                return filtered.iloc[0, :].to_dict()
+            else:
+                return None
         else:
-            return None
+                return None
+        
 
 
     def get_initial_edge_tags(cr_input, osm_n1, osm_n2, inverse = False):

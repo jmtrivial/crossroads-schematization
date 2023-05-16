@@ -88,7 +88,7 @@ RAS, même si les trottoirs sont assez biseautés, ça ressemble à ça
 
 RAS, même si un îlot est très grand vers l'intérieur (lié au tracé des voies qui est construit en étoile)
 
-### Les p'tits débrouillards : 45.78300 3.07844
+### Les p'tits débrouillards : 45.78300 3.07844 --c1 4 --c2 5
 
 * il manque plein de passages piétons
 ### Carrefour Liève : 45.78191 3.09890
