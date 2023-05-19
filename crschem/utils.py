@@ -91,7 +91,7 @@ class Utils:
 
         m1 = (a1 + a2) / 2
         if m1 > math.pi:
-            return m1 - math.pi
+            return m1 - 2 * math.pi
         else:
             return m1
 

@@ -136,6 +136,10 @@ class CrossroadSchematization:
         # compute for each branch two long edges *S1* and *S2* corresponding to the sidewalks:
         self.build_sidewalks()
 
+        # TODO: create crossings before sidewalks, in order to adjust the turning
+        # then use it to filter an only preserve crossings inside the inner region
+
+
         # assemble sidewalks
         self.assemble_sidewalks()
 

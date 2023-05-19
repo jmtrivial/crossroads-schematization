@@ -187,7 +187,7 @@
               <Option name="properties" type="Map">
                 <Option name="angle" type="Map">
                   <Option name="active" value="true" type="bool"/>
-                  <Option name="expression" value="180 + (-&quot;orientation&quot; / pi()) * 180" type="QString"/>
+                  <Option name="expression" value="90 + (-&quot;orientation&quot; / pi()) * 180" type="QString"/>
                   <Option name="type" value="3" type="int"/>
                 </Option>
                 <Option name="outlineWidth" type="Map">
@@ -237,7 +237,7 @@
               <Option name="properties" type="Map">
                 <Option name="angle" type="Map">
                   <Option name="active" value="true" type="bool"/>
-                  <Option name="expression" value="180 + (-&quot;orientation&quot; / pi()) * 180" type="QString"/>
+                  <Option name="expression" value="90 + (-&quot;orientation&quot; / pi()) * 180" type="QString"/>
                   <Option name="type" value="3" type="int"/>
                 </Option>
                 <Option name="outlineWidth" type="Map">
@@ -292,7 +292,7 @@
               <Option name="properties" type="Map">
                 <Option name="angle" type="Map">
                   <Option name="active" value="true" type="bool"/>
-                  <Option name="expression" value="180 + (-&quot;orientation&quot; / pi()) * 180" type="QString"/>
+                  <Option name="expression" value="90 + (-&quot;orientation&quot; / pi()) * 180" type="QString"/>
                   <Option name="type" value="3" type="int"/>
                 </Option>
                 <Option name="outlineWidth" type="Map">

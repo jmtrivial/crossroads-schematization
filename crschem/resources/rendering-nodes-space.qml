@@ -185,13 +185,13 @@
               <Option name="properties" type="Map">
                 <Option name="angle" type="Map">
                   <Option value="true" name="active" type="bool"/>
-                  <Option value="180 + (-&quot;orientation&quot; / pi()) * 180" name="expression" type="QString"/>
+                  <Option value="90 + (-&quot;orientation&quot; / pi()) * 180" name="expression" type="QString"/>
                   <Option value="3" name="type" type="int"/>
                 </Option>
                 <Option name="outlineWidth" type="Map">
                   <Option value="true" name="active" type="bool"/>
                   <Option value="&quot;lane_width&quot; * 1.3" name="expression" type="QString"/>
-                  <Option value="3" name="type" type="int"/>
+                  <Option value="3" name="type" type="int"/>²
                 </Option>
                 <Option name="size" type="Map">
                   <Option value="true" name="active" type="bool"/>

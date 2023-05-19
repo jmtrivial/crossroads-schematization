@@ -143,7 +143,7 @@ class StraightWay(SimpleWay):
     
     # basic evaluation of the width using number of lanes, and type of highway
     def evaluate_width_way(self, osm_graph):
-        return u.Utils.evaluate_width_way(osm_graph[self.polybranch[-1]][self.polybranch[-2]][0])
+        return u.Utils.evaluate_width_way(osm_graph[self.consolidated_polybranch[0]][self.consolidated_polybranch[1]][0])
 
 
 class StraightSidewalk:
@@ -628,45 +628,132 @@ class Crossing:
         self.island_width = 0.50 # cm
 
         self.compute_location()
-        self.compute_orientation()
+
+        self.compute_way_orientations()
+
+        if len(self.roadway_nodes) > 0:
+
+            self.compute_footway_orientations()
+
+            self.compute_final_orientation()
+
+            # split adjacent ways in two groups
+            self.compute_adjacent_ways_ditribution()
+
 
         self.compute_crossing_profile()
 
-    def compute_crossing_profile(self):
-        self.has_island = "crossing:island" in self.osm_input.nodes[self.node_id] and self.osm_input.nodes[self.node_id]["crossing:island"] == "yes"
-        car_way = u.Utils.get_adjacent_road_edge(self.node_id, self.osm_input)
-        if car_way != None:
-            nb_backward, nb_forward, width = u.Utils.evaluate_way_composition(car_way)
-            self.nb_lanes_backward = nb_backward
-            self.nb_lanes_forward = nb_forward
-            self.lane_width = width
+    def compute_way_orientations(self):
+        self.roadway_nodes = self.get_adjacent_roadways_nodes()
+
+        vectors = self.build_vectors(self.roadway_nodes)
+        self.way_orientations = sorted([math.atan2(x[1], x[0]) for x in vectors])
+
+
+    def compute_footway_orientations(self):
+        self.footway_nodes = self.get_adjacent_footways_nodes()
+
+        if len(self.footway_nodes) > 2:
+            print("Error: bad number of footways:", len(self.footway_nodes))
+            self.footway_orientations = []
+        if len(self.footway_nodes) != 0:
+            vector_footways = self.build_vectors(self.footway_nodes)
+            self.footways_orientations = sorted([math.atan2(x[1], x[0]) for x in vector_footways])
         else:
-            self.nb_lanes_backward = 0
-            self.nb_lanes_forward = 0
-            self.lane_width = 0
+            # guess the correct split a maximum angle heuristic
+            angle_with_pred = [ a - b for a, b in zip(self.way_orientations, [self.way_orientations[-1]- 2 * math.pi] + self.way_orientations)]
+            max_id = angle_with_pred.index(max(angle_with_pred))
+            pred = max_id - 1
+            if pred < 0:
+                pred = len(self.way_orientations) - 1
+            self.footways_orientations = [u.Utils.angle_mean(self.way_orientations[max_id], self.way_orientations[pred])]
+        
+        # if required, add the opposite orientation
+        if len(self.footways_orientations) == 1:
+            opposite = self.footways_orientations[0] + math.pi
+            if opposite > math.pi:
+                opposite -= 2 * math.pi
+            self.footways_orientations.append(opposite)
+
+
+    def compute_adjacent_ways_ditribution(self):
+        # set angles up to angle1 using modulo 2pi 
+        angle1 = self.footways_orientations[0]
+        angle2 = self.footways_orientations[1] 
+        if angle2 < angle1:
+            angle2 += 2 * math.pi
+        way_orientations_unfold = [a if a > angle1 else a + 2 * math.pi for a in self.way_orientations]
+
+        # identify the side of each way wrt the two footways
+        way_side = [0 if a < angle2 else 1 for a in way_orientations_unfold]
+        ways_and_orientations = list(zip(self.roadway_nodes, way_side))
+
+        # shift list to reach the angle1 orientation
+        while ways_and_orientations[0][1] == ways_and_orientations[-1][1]:
+            ways_and_orientations = ways_and_orientations[1:] + ways_and_orientations[:1]
+
+        # finally build the ordered list of ways on each side of the footways
+        self.ways_side1 = [w for w, s in ways_and_orientations if s == 0]
+        self.ways_side2 = [w for w, s in ways_and_orientations if s == 1]
+        
+
+    def compute_crossing_profile_oneside(self, ways, invert):
+        # TODO: improve this naive merge where the sequence is not really computed
+        # assuming that there is only one set of backward lanes and one set of forward lanes
+        nb_backward = 0
+        nb_forward = 0
+        total_width = 0
+        for nw in ways:
+            if nw in self.osm_input[self.node_id]:
+                edge = self.osm_input[self.node_id][nw][0]
+                nb_b, nb_f, w = u.Utils.evaluate_way_composition(edge)
+            else:
+                edge = self.osm_input[nw][self.node_id][0]
+                nb_f, nb_b, w = u.Utils.evaluate_way_composition(edge)
+            nb_backward += nb_b
+            nb_forward += nb_f
+            total_width += w * (nb_f + nb_b)
+
+
+        if invert:
+            return nb_forward, nb_backward, total_width / (nb_forward + nb_backward)
+        else:
+            return nb_backward, nb_forward, total_width / (nb_forward + nb_backward)
+
+
+    def compute_crossing_profile(self):
+        # TODO: improve this naive approach implemented in this fonction
+        # where there is only two directions (island being only between both directions)
+
+        self.has_island = "crossing:island" in self.osm_input.nodes[self.node_id] and self.osm_input.nodes[self.node_id]["crossing:island"] == "yes"
+
+        # for each side, compute the distribution
+        profile1 = self.compute_crossing_profile_oneside(self.ways_side1, False)
+        profile2 = self.compute_crossing_profile_oneside(self.ways_side2, True)
+
+        # choose the largest side as the final profile
+        nbside1 = profile1[0] + profile1[1]
+        nbside2 = profile2[0] + profile2[1]
+
+        if nbside1 > nbside2:
+            self.nb_lanes_backward = profile1[0]
+            self.nb_lanes_forward = profile1[1]
+        else:
+            self.nb_lanes_backward = profile2[0]
+            self.nb_lanes_forward = profile2[1]
+
+        # use the maximum width
+        self.lane_width = max(profile1[2], profile2[2])
+
 
     def compute_location(self):
         self.x = self.osm_input.nodes[self.node_id]["x"]
         self.y = self.osm_input.nodes[self.node_id]["y"]
 
 
-    def compute_orientation(self):
-        footways = self.get_adjacent_footways_nodes()
-        if len(footways) != 0:
-            self.bearing = self.compute_parallel_orientation(footways)
-            self.bearing_confidence = False
-        else:
-            roadways = self.get_adjacent_roadways_nodes()
-            if len(roadways) == 0:
-                print("Error: no adjacent road")
-                for x in self.osm_input[self.node_id]:
-                    print(" ", self.osm_input[self.node_id][x][0])
-                self.bearing_confidence = Fakse
-                self.bearing = 0
-            else:
-                self.bearing = self.compute_orthogonal_orientation(roadways)
-                self.bearing_confidence = True
-
+    def compute_final_orientation(self):
+        self.bearing = u.Utils.angle_mean(self.footways_orientations[0], self.footways_orientations[1])
+        self.bearing_confidence = len(self.footway_nodes) != 0
 
     def get_adjacent_roadways_nodes(self):
         # TODO: est-ce qu'on n'essayerait pas de prendre des nodes un peu plus loin sur les ways?
@@ -676,36 +763,6 @@ class Crossing:
     def get_adjacent_footways_nodes(self):
         return [x for x in self.osm_input[self.node_id] if u.Utils.is_footway_edge(self.osm_input[self.node_id][x][0])]
 
-
-    def compute_parallel_orientation(self, nodes):
-        vectors = self.build_vectors(nodes)
-        if len(vectors) == 1:
-            return math.atan2(vectors[0][1], vectors[0][0])
-        elif len(vectors) == 2:
-            return math.atan2(vectors[0][1] - vectors[1][1], vectors[0][0] - vectors[1][0])
-        elif len(vectors) == 3:
-            # compute the orientations (in gradient) and sort them
-            orientations = sorted([math.atan2(x[1], x[0]) for x in vectors])
-            # compute the difference between consecutive orientations
-            diff = [o[1] - o[0] for o in zip(orientations, orientations[1:] + orientations[:1])]
-            diff = [ o + 2 * math.pi if o < 0 else o for o in diff]
-            # identify the pair of branches with the smallest difference
-            branchID1 = diff.index(min(diff))
-            branchID2 = (branchID1 + 1) % len(vectors)
-            # identify the other one
-            otherBranchID = (branchID2 + 1) % len(vectors)
-            # compute a mean of the global orientation, considering the other branch as an opposite one
-            return u.Utils.angle_mean(u.Utils.angle_mean(orientations[branchID1], orientations[branchID2]), orientations[otherBranchID] + math.pi)
-        else:
-            print(vectors, [math.atan2(x[1], x[0]) for x in vectors])
-            print("Error: bad number of edges to compute a direction", len(vectors))
-
-    def compute_orthogonal_orientation(self, nodes):
-        bearing = self.compute_parallel_orientation(nodes)
-        bearing += math.pi / 2
-        if bearing > 2 * math.pi:
-            bearing -= 2 * math.pi
-        return bearing
 
     def build_vectors(self, nodes):
         return [u.Utils.normalized_vector(self.osm_input.nodes[self.node_id], self.osm_input.nodes[n]) for n in nodes]
@@ -717,7 +774,6 @@ class Crossing:
                       osm_input.nodes[n]["type"] == "input" and Crossing.is_crossing(n, cr_input)])
 
 
-
     def is_crossing(node, cr_input):
         tags = u.Utils.get_initial_node_tags(cr_input, node)
         return tags and tags["type"] == "crosswalk"
@@ -726,8 +782,8 @@ class Crossing:
     def get_line_representation(self, length = 1):
         x = self.osm_input.nodes[self.node_id]["x"]
         y = self.osm_input.nodes[self.node_id]["y"]
-        shiftx = math.cos(self.bearing) * length
-        shifty = math.sin(self.bearing) * length
+        shiftx = -math.sin(self.bearing) * length
+        shifty = math.cos(self.bearing) * length
         return [(x - shiftx, y - shifty), (x, y), (x + shiftx, y + shifty)]
 
 
@@ -750,8 +806,8 @@ class Crossing:
         # crossings
         for i in range(nb):
             shift = -start_shift + i * lane_width_effective + (self.island_width if self.has_island and i >= self.nb_lanes_forward else 0)
-            shiftx = math.cos(self.bearing) * shift
-            shifty = math.sin(self.bearing) * shift
+            shiftx = -math.sin(self.bearing) * shift
+            shifty = math.cos(self.bearing) * shift
             elements.append({ "type": "crossing",
                               "geometry": Point(x + shiftx, y + shifty),
                               "lane_orientation": "forward" if i < self.nb_lanes_forward else "backward",
@@ -766,8 +822,8 @@ class Crossing:
                     shift += self.island_width / 2
                 elif i + 1 > self.nb_lanes_forward:
                     shift += self.island_width
-            shiftx = math.cos(self.bearing) * shift
-            shifty = math.sin(self.bearing) * shift
+            shiftx = -math.sin(self.bearing) * shift
+            shifty = math.cos(self.bearing) * shift
             island = self.has_island and i + 1 == self.nb_lanes_backward
             elements.append({ "type": "traffic_island" if island else "lane_separator",
                               "geometry": Point(x + shiftx, y + shifty),
