@@ -56,6 +56,19 @@ class Utils:
         v = Utils.vector(n1, n2)
         return linalg.norm(np.array(v), 2)
 
+    # return true if p is a point in the edge (n1, n2)
+    def is_in_edge(p, n1, n2):
+        v = Utils.vector(n1, n2)
+        vp = Utils.vector(n1, p)
+
+        # first check if they are colinear
+        if abs(np.cross(v, vp)) > 1e-6:
+            return False
+
+        dot = np.dot(v, vp)
+        dotv = np.dot(v, v)
+        return dot >= 0 and dot <= dotv
+
 
     def reverse_geom(geom):
         def _reverse(x, y, z=None):
@@ -227,7 +240,7 @@ class Utils:
             if row["osm_node_ids"] == [str(osm_n1), str(osm_n2)]:
                 return row.to_dict()
         if inverse:
-            return Utils.get_initial_edge_tags(cr_input, osm_n1, osm_n2, False)
+            return Utils.get_initial_edge_tags(cr_input, osm_n2, osm_n1, False)
         else:
             return None
 

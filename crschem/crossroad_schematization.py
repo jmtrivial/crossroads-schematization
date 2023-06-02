@@ -131,37 +131,44 @@ class CrossroadSchematization:
         self.label_osm_from_input()
         
         # grouping ways by branch
+        print("Creating branches")
         self.build_branches()
 
         # compute for each branch two long edges *S1* and *S2* corresponding to the sidewalks:
+        print("Creating sidewalks")
         self.build_sidewalks()
-
-        # TODO: create crossings before sidewalks, in order to adjust the turning
-        # then use it to filter an only preserve crossings inside the inner region
-
-
-        # assemble sidewalks
-        self.assemble_sidewalks()
-
-        # compute inner region 
-        self.build_inner_region()
-
-        # build traffic islands
-        self.build_traffic_islands()
 
         # add pedestrian crossings
         print("Creating crossings")
-        self.crossings = c.Crossing.create_crossings(self.osm_input, self.cr_input, self.inner_region)
+        self.crossings = c.Crossing.create_crossings(self.osm_input, self.cr_input, 
+                                                     self.osm_input_oriented,
+                                                     self.distance_kerb_footway)
+
+        # assemble sidewalks
+        print("Assembling sidewalks")
+        self.assemble_sidewalks()
+
+        # compute inner region 
+        print("Computing inner region")
+        self.build_inner_region()
+
+        # filtering crossings
+        print("Filtering crossings")
+        self.filter_crossings()
+        # build traffic islands
+        print("Building traffic islands")
+        self.build_traffic_islands()
 
         print("Computing traffic island shape")
         # compute traffic island shape
         for island in self.traffic_islands:
             island.compute_generalization(self.crossings, self.inner_region)
 
-        # add a supplementary point on the sidewalks where a crossing is reaching it
-        # to preserve the estimated distance
-        # TODO
 
+    def filter_crossings(self):
+        def function_is_inside(pair):
+            return pair[1].is_inside(self.inner_region)
+        self.crossings = dict(filter(function_is_inside, self.crossings.items()))
 
     def load_osm(self, osm_oriented, osm_unoriented):
         # load OSM data from the same crossroad (osmnx:graph)
@@ -231,12 +238,10 @@ class CrossroadSchematization:
                     bname = e["name"]
                     if not id in self.branches:
                         self.branches[id] = c.Branch(bname, id, self.osm_input, self.cr_input, self.distance_kerb_footway)
-                    self.branches[id].add_way(c.SimpleWay(n1, n2, e, osm_n1 == n1,
-                                                        c.Crossing.is_crossing(n1, self.cr_input)))
+                    self.branches[id].add_way(c.SimpleWay(n1, n2, e, osm_n1 == n1))
 
 
     def build_sidewalks(self):
-        print("Building sidewalks")
         self.sidewalks = {}
         
         for bid in self.branches:
@@ -261,18 +266,30 @@ class CrossroadSchematization:
                         result.append(sw)
         return result
 
+    def get_crossings_by_sidewalks_ids(self, sid):
+        result = []
+        for cid in self.crossings:
+            if str(sid) in self.crossings[cid].get_sidewalk_ids():
+                result.append(self.crossings[cid])
+        return result
+
+
     def assemble_sidewalks(self):
-        print("Assembling sidewalks")
         self.cr_input.replace('', np.nan, inplace=True)
         original_sidewalks_ids = self.get_sidewalk_ids()
         self.merged_sidewalks = []
 
+        # TODO: find crossings that should be part of the sidewalks and
+        # integrate them to the final shape
+
         for sid in original_sidewalks_ids:
-            self.merged_sidewalks.append(c.TurningSidewalk(self.get_sidewalks_by_id(sid), self.osm_input, self.distance_kerb_footway))
+            self.merged_sidewalks.append(c.TurningSidewalk(sid,
+                                                            self.get_sidewalks_by_id(sid), 
+                                                            self.get_crossings_by_sidewalks_ids(sid),
+                                                            self.osm_input, self.cr_input, self.distance_kerb_footway))
 
 
     def build_inner_region(self):
-        print("Building inner region")
         open_sides = copy.copy(self.merged_sidewalks)
 
         # order sidewalks
@@ -302,7 +319,6 @@ class CrossroadSchematization:
 
 
     def build_traffic_islands(self):
-        print("Building traffic island")
         traffic_islands_edges = {}
 
         # first group edges by island id
@@ -500,7 +516,8 @@ class CrossroadSchematization:
 
         if merged_sidewalks:
             for sw in self.merged_sidewalks:
-                x, y = sw.way.xy
+                x = [p.coord[0] for p in sw.way]
+                y = [p.coord[1] for p in sw.way]
                 plt.plot(x, y, color = colors[sw.sidewalk_id() % len(colors)], linewidth=3)
 
         if exact_islands:
