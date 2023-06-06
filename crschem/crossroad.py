@@ -278,6 +278,8 @@ class TurningSidewalk:
         self.osm_input = osm_input
         self.cr_input = cr_input
 
+        self.epsilon_for_merging = 2
+
         self.build_initial_turn()
 
         if not ignore_crossings_for_sidewalks:
@@ -416,11 +418,10 @@ class TurningSidewalk:
                 if cid >= len(self.way):
                     break
             
-            epsilon = 1
-            if cid != 0 and abs(curvPos - self.way[cid - 1].curvPos) < epsilon:
+            if cid != 0 and abs(curvPos - self.way[cid - 1].curvPos) < self.epsilon_for_merging:
                 # replace the existing node by the crossing
                 self.way[cid - 1] = p
-            elif cid < len(self.way) and abs(curvPos - self.way[cid].curvPos) < epsilon:
+            elif cid < len(self.way) and abs(curvPos - self.way[cid].curvPos) < self.epsilon_for_merging:
                 # replace the existing node by the crossing
                 self.way[cid] = p
             else:
