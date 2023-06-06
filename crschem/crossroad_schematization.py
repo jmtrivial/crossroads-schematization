@@ -38,6 +38,9 @@ class CrossroadSchematization:
     def __init__(self, cr_input, 
                  osm_oriented = None,
                  osm_unoriented = None,
+                 ignore_crossings_for_sidewalks = False,
+                 use_fixed_width_on_branches = False,
+                 turn_shape = c.TurningSidewalk.TurnShape.ADJUSTED_ANGLE,
                  osm_buffer_size_meters = 200, 
                  distance_kerb_footway = 0.5,
                  white_space_meter = 1.5):
@@ -45,12 +48,18 @@ class CrossroadSchematization:
         self.distance_kerb_footway = distance_kerb_footway
         self.white_space_meter = white_space_meter
         self.cr_input = cr_input
+        self.ignore_crossings_for_sidewalks = ignore_crossings_for_sidewalks
+        self.use_fixed_width_on_branches = use_fixed_width_on_branches
+        self.turn_shape = turn_shape
 
         self.load_osm(osm_oriented, osm_unoriented)
 
 
     def build(latitude, longitude,
               C0, C1, C2,
+              ignore_crossings_for_sidewalks = False,
+              use_fixed_width_on_branches = False,
+              turn_shape = c.TurningSidewalk.TurnShape.ADJUSTED_ANGLE,
               verbose = True,
               ignore_cache = False,
               overpass = False,
@@ -110,7 +119,10 @@ class CrossroadSchematization:
         else:
             os.unlink(tmp2.name)
 
-        return CrossroadSchematization(cr_input, G_init)
+        return CrossroadSchematization(cr_input, G_init, 
+                                        ignore_crossings_for_sidewalks=ignore_crossings_for_sidewalks, 
+                                        use_fixed_width_on_branches=use_fixed_width_on_branches,
+                                        turn_shape=turn_shape)
 
     def is_valid_model(self):
         for index, elem in self.cr_input.iterrows():
@@ -245,7 +257,7 @@ class CrossroadSchematization:
         self.sidewalks = {}
         
         for bid in self.branches:
-            self.sidewalks[bid] = self.branches[bid].get_sidewalks()
+            self.sidewalks[bid] = self.branches[bid].get_sidewalks(self.use_fixed_width_on_branches)
 
     
     def get_sidewalk_ids(self):
@@ -286,7 +298,9 @@ class CrossroadSchematization:
             self.merged_sidewalks.append(c.TurningSidewalk(sid,
                                                             self.get_sidewalks_by_id(sid), 
                                                             self.get_crossings_by_sidewalks_ids(sid),
-                                                            self.osm_input, self.cr_input, self.distance_kerb_footway))
+                                                            self.osm_input, self.cr_input, self.distance_kerb_footway,
+                                                            self.ignore_crossings_for_sidewalks,
+                                                            self.turn_shape))
 
 
     def build_inner_region(self):

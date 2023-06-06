@@ -8,6 +8,7 @@ import shapely.ops
 import osmnx
 from more_itertools import locate
 import geopandas
+from enum import Enum
 
 from . import utils as u
 from . import processing as p
@@ -221,6 +222,21 @@ class StraightSidewalk:
 
 class TurningSidewalk:
 
+    class TurnShape(Enum):
+        BEVELED = 0
+        STRAIGHT_ANGLE = 1
+        ADJUSTED_ANGLE = 2
+
+        def __str__(self):
+                return self.name
+
+        @staticmethod
+        def from_string(s):
+            try:
+                return TurnShape[s]
+            except KeyError:
+                raise ValueError()
+                
     class Point:
         def __init__(self, coord, curvPos = None):
             if isinstance(coord, Point):
@@ -247,11 +263,14 @@ class TurningSidewalk:
 
         
 
-    def __init__(self, id, str_sidewalks, crossings, osm_input, cr_input, distance_kerb_footway):
+    def __init__(self, id, str_sidewalks, crossings, 
+                 osm_input, cr_input,
+                 distance_kerb_footway, ignore_crossings_for_sidewalks,
+                 turn_shape = TurnShape.ADJUSTED_ANGLE):
         self.id = id
 
         self.distance_kerb_footway = distance_kerb_footway
-
+        self.turn_shape = turn_shape
         self.str_sidewalks = str_sidewalks
 
         self.crossings = crossings
@@ -261,7 +280,8 @@ class TurningSidewalk:
 
         self.build_initial_turn()
 
-        self.add_crossings()
+        if not ignore_crossings_for_sidewalks:
+            self.add_crossings()
 
         self.adjust_flexible_points()
 
@@ -286,8 +306,12 @@ class TurningSidewalk:
                     # if the intersection point is within the second edge
                     self.way[2] = TurningSidewalk.FixedPoint(self.intersection)
                 else:
-                    # we add a flexible point
-                    self.way.insert(2, TurningSidewalk.FlexiblePoint(self.intersection))
+                    if self.turn_shape == TurningSidewalk.TurnShape.STRAIGHT_ANGLE:
+                        # we add a fixed point
+                        self.way.insert(2, TurningSidewalk.FixedPoint(self.intersection))
+                    else:
+                        # we add a flexible point
+                        self.way.insert(2, TurningSidewalk.FlexiblePoint(self.intersection))
 
 
     def is_sidewalk_edge(self, node1, node2):
@@ -359,13 +383,14 @@ class TurningSidewalk:
         # create turn with the 4 initial points
         self.build_initial_turn_basic()
 
-        # compute middle point
-        self.intersection = self.get_intersection()
+        if self.turn_shape != TurningSidewalk.TurnShape.BEVELED:
+            # compute middle point
+            self.intersection = self.get_intersection()
 
-        # create the initial turn
-        if not self.intersection.is_empty:
-            # if there is an intersection point
-            self.add_intersection_point_in_turn()
+            # create the initial turn
+            if not self.intersection.is_empty:
+                # if there is an intersection point
+                self.add_intersection_point_in_turn()
 
 
         # compute the corresponding path in the OSM graph
@@ -1162,9 +1187,13 @@ class Branch:
         edges = [self.middle_line.parallel_offset(s, direction) for s in shifts]
         return LineString([edges[0].coords[0], edges[1].coords[1]])
 
-    def build_two_sidewalks(self):
+    def build_two_sidewalks(self, use_fixed_width_on_branches):
+        from statistics import mean
         # the shifts corresponds to half the widths of the street
         shifts = [x / 2 for x in self.widths]
+
+        if use_fixed_width_on_branches:
+            shifts = [mean(shifts) for x in shifts]
         
         # compute the two lines (one in each side)
         result = [StraightSidewalk(self.shift_middle_line(shifts, "left"),
@@ -1182,7 +1211,7 @@ class Branch:
                 if not intersections.is_empty and isinstance(intersections, Point):
                     result[i].update_first_node(intersections)
 
-        return result
+        self.sidewalks = result
 
 
 
@@ -1255,7 +1284,7 @@ class Branch:
 
 
 
-    def get_sidewalks(self):
+    def get_sidewalks(self, use_fixed_width_on_branches):
 
         self.build_sidewalk_straightways()
 
@@ -1265,7 +1294,7 @@ class Branch:
 
         self.compute_widths()
 
-        self.sidewalks = self.build_two_sidewalks()
+        self.build_two_sidewalks(use_fixed_width_on_branches)
 
         return self.sidewalks
 

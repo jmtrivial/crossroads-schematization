@@ -7,6 +7,7 @@ import geopandas
 import sys
 
 import crschem.crossroad_schematization as cs
+import crschem.crossroad as c
 
 # a trick to avoid the creation of files given as parameters
 class FileOpener(argparse.FileType):
@@ -40,6 +41,11 @@ group_preprocess.add_argument('--c1', help='Intersection size (aggregation by ad
 group_preprocess.add_argument('--c2', help='Intersection size (aggregation by cycle detection). Default: 4.', type=float, default=4)
 
 
+group_process = parser.add_argument_group("Processing", "Parameters of the processing")
+group_process.add_argument('--ignore-crossings-for-sidewalks', help='Do not use crossings to shape the sidewalks', action='store_true')
+group_process.add_argument('--use-fixed-width-on-branches', help='Use a fixed width on each branch (do not evaluate the width adjustment)', action='store_true')
+group_process.add_argument('--turn-shape', help='Turn shape.', type=lambda s: c.TurningSidewalk.TurnShape[s], choices=list(c.TurningSidewalk.TurnShape))
+
 group_output = parser.add_argument_group("Output", "Display, log or save results")
 group_output.add_argument('-l', '--log-files', help='keep intermediate files and give their name in output', action='store_true')
 group_output.add_argument('-d', '--display-all', help='display all steps', action='store_true')
@@ -66,7 +72,11 @@ try:
         latitude = args.by_coordinates[0]
         longitude = args.by_coordinates[1]
         crschem = cs.CrossroadSchematization.build(latitude, longitude,
-                                                   args.c0, args.c1, args.c2,                                                   verbose = True,
+                                                   args.c0, args.c1, args.c2,
+                                                   verbose = True,
+                                                   ignore_crossings_for_sidewalks = args.ignore_crossings_for_sidewalks,
+                                                   use_fixed_width_on_branches = args.use_fixed_width_on_branches,
+                                                   turn_shape = args.turn_shape,
                                                    ignore_cache = args.ignore_cache,
                                                    overpass = args.overpass,
                                                    log_files = args.log_files)
