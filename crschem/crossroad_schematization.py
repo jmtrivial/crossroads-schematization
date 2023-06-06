@@ -449,6 +449,7 @@ class CrossroadSchematization:
                 settings.dpi = dpi
             exporter.exportToImage(filename, settings)
         
+        project.clear()
         # trick [END]: go back to the initial directory
         os.chdir(cwd)
         
