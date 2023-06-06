@@ -351,7 +351,7 @@ class CrossroadSchematization:
             self.traffic_islands.append(c.TrafficIsland(traffic_islands_edges[eid], self.osm_input, self.cr_input))
 
 
-    def to_printable_internal(self, filename, log_files, dpi = -1, crs = 2154):
+    def to_printable_internal(self, filename, log_files, dpi = -1, crs = 3857):
         from qgis.core import QgsApplication, QgsProject, QgsPrintLayout, QgsLayout, QgsVectorLayer, QgsLayoutExporter, QgsLayoutItemPage, QgsReadWriteContext, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsFeatureRequest, QgsExpression
         from qgis.PyQt.QtXml import QDomDocument
         import tempfile
