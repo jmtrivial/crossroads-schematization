@@ -450,6 +450,7 @@ class CrossroadSchematization:
             exporter.exportToImage(filename, settings)
         
         project.clear()
+        qgs.exit()
         # trick [END]: go back to the initial directory
         os.chdir(cwd)
         
