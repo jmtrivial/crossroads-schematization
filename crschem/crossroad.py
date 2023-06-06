@@ -68,17 +68,18 @@ class StraightWay(SimpleWay):
     # parameters (and attributes)
     # - a simpleway (defined by nodes n1, n2)
     # - polybranch: an extended path from n1, n2
-    def __init__(self, sw, polybranch):
+    def __init__(self, sw, polybranch, G):
         super().__init__(sw.n1, sw.n2, sw.edge_tags, sw.same_osm_orientation)
         self.polybranch = polybranch
         self.edge = None
         self.array = None
+        self.G = G
         self.lz = p.Linearization()
         self.maximal_removal = 20 # meters
 
 
     def build_from_simpleway(sw, G, left_first):
-        result = StraightWay(sw, p.Expander.extend_branch(G, sw.n1, sw.n2, left_first)) 
+        result = StraightWay(sw, p.Expander.extend_branch(G, sw.n1, sw.n2, left_first), G) 
         result.compute_linear_edge(G)
         return result
 
@@ -133,12 +134,27 @@ class StraightWay(SimpleWay):
         # plt.show()
                 
         return LineString([LineString([e1_1, e2_1]).centroid, LineString([e1_2, e2_2]).centroid])
-    
-    
-    # basic evaluation of the width using number of lanes, and type of highway
-    def evaluate_width_way(self, osm_graph):
-        return u.Utils.evaluate_width_way(osm_graph[self.consolidated_polybranch[0]][self.consolidated_polybranch[1]][0])
 
+
+    def get_projection_on_polybranch(self, point):
+        line = [(self.G.nodes[x]["x"], self.G.nodes[x]["y"]) for x in self.polybranch]
+        nearest = shapely.ops.nearest_points(LineString(line), Point(point))
+        pt = nearest[0]
+
+        edges = []
+        for e1, e2 in zip(self.polybranch, self.polybranch[1:]):
+            if u.Utils.is_in_edge(pt, self.G.nodes[e1], self.G.nodes[e2]):
+                edges.append((e1, e2))
+
+        if len(edges) == 0:
+            return pt, None
+        elif len(edges) == 1:
+            return pt, edges[0]
+        else:
+            # find the edge with the largest estimated width
+            ewidths = [(e, u.Utils.evaluate_width_way(self.G[e[0]][e[1]][0])) for e in edges]
+            return pt, max(ewidths, key=lambda x: x[1])[0]
+        
 
 class StraightSidewalk:
 
@@ -367,14 +383,24 @@ class TurningSidewalk:
             location = c.get_location_on_sidewalk(self.id)
             # create the crossing point
             p = TurningSidewalk.CrossingPoint(location, curvPos)
+
             # find the good location along the way
             cid = 0
             while self.way[cid].curvPos < curvPos:
                 cid += 1
                 if cid >= len(self.way):
                     break
-            # add it to the sidewalk
-            self.way.insert(cid, p)
+            
+            epsilon = 1
+            if cid != 0 and abs(curvPos - self.way[cid - 1].curvPos) < epsilon:
+                # replace the existing node by the crossing
+                self.way[cid - 1] = p
+            elif cid < len(self.way) and abs(curvPos - self.way[cid].curvPos) < epsilon:
+                # replace the existing node by the crossing
+                self.way[cid] = p
+            else:
+                # add it to the sidewalk
+                self.way.insert(cid, p)
 
 
     def adjust_flexible_points(self):
@@ -1132,17 +1158,23 @@ class Branch:
         return result
 
 
+    def shift_middle_line(self, shifts, direction):
+        edges = [self.middle_line.parallel_offset(s, direction) for s in shifts]
+        return LineString([edges[0].coords[0], edges[1].coords[1]])
+
     def build_two_sidewalks(self):
-        # the shift corresponds to half the width of the street
-        shift = self.width / 2
+        # the shifts corresponds to half the widths of the street
+        shifts = [x / 2 for x in self.widths]
         
         # compute the two lines (one in each side)
-        result = [StraightSidewalk(self.middle_line.parallel_offset(shift, "left"),
+        result = [StraightSidewalk(self.shift_middle_line(shifts, "left"),
                                    self.sides[0],
                                    "left"),
-                   StraightSidewalk(self.middle_line.parallel_offset(shift, "right"),
+                   StraightSidewalk(self.shift_middle_line(shifts, "right"),
                                    self.sides[1],
                                    "right")]
+
+        # shift them if required
         buf = u.Utils.get_edges_buffered_by_osm(self.get_other_edges(), self.osm_input, self.distance_kerb_footway).boundary
         for i, s in enumerate(result):
             if s.edge.intersects(buf):
@@ -1176,10 +1208,23 @@ class Branch:
         self.middle_line = StraightWay.build_middle_line(self.sides[0], self.sides[1])
             
     
-    def compute_width(self):
-        self.width = self.sides[0].evaluate_width_way(self.osm_input) / 2 + \
-                    self.sides[1].evaluate_width_way(self.osm_input) / 2 + \
-                    self.get_initial_branche_width() + 2 * self.distance_kerb_footway
+    def compute_widths(self):
+        # for each extremity of the middle line
+        self.widths = []
+        for p in self.middle_line.coords:
+
+            # project it on each polybranches and select two furthest points
+            p1, e1 = self.sides[0].get_projection_on_polybranch(p)
+            p2, e2 = self.sides[1].get_projection_on_polybranch(p)
+
+            # for each point estimate the width of the way
+            interdistance = u.Utils.edge_length(p1, p2)
+            w1 = u.Utils.evaluate_width_way(self.osm_input[e1[0]][e1[1]][0]) / 2 + self.distance_kerb_footway
+            w2 = u.Utils.evaluate_width_way(self.osm_input[e2[0]][e2[1]][0]) / 2 + self.distance_kerb_footway
+
+            # compute the final width
+            self.widths.append(interdistance + w1 + w2)
+
 
     def build_sidewalk_straightways(self):
         # get the external simple ways (they are bordered by a sidewalk)
@@ -1218,7 +1263,7 @@ class Branch:
 
         self.build_middle_way()
 
-        self.compute_width()
+        self.compute_widths()
 
         self.sidewalks = self.build_two_sidewalks()
 
