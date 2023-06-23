@@ -1,0 +1,94 @@
+<Map background-color="white">
+  <Style name="inner">
+    <Rule>
+      <!-- inner region with dots -->
+      <PolygonPatternSymbolizer file="images/point.png"/>
+    </Rule>
+  </Style>
+
+
+
+  <Style name="sidewalks-space">
+    <Rule>
+      <!-- confort space (white) -->
+      <LineSymbolizer stroke="#fff" stroke-width="45" stroke-linejoin="round" stroke-linecap="round" />
+    </Rule>
+  </Style>
+
+  <Style name="sidewalks">
+    <Rule>
+      <LineSymbolizer stroke="#000" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" />
+    </Rule>
+  </Style>
+
+
+
+  <Style name="islands-space">
+    <Rule>
+      <LineSymbolizer stroke="#fff" stroke-width="95" stroke-linejoin="round" stroke-linecap="round" />
+    </Rule>
+  </Style>
+  <Style name="islands">
+    <Rule>
+      <LineSymbolizer stroke="#000" stroke-width="60" stroke-linejoin="round" stroke-linecap="round" />
+    </Rule>
+  </Style>
+
+
+  <Style name="crossings">
+    <Rule>
+      <Filter>[type] = crossing</Filter>
+      <PointSymbolizer file="images/crossing-3.png" transform="rotate(180 + (-[orientatio] / 3.14) * 180)" allow-overlap="yes" />
+    </Rule>
+  </Style>
+
+
+
+  <Layer>
+    <StyleName>inner</StyleName>
+    <Datasource>
+      <Parameter name="file">ballainvilliers/ballainvilliers-inner.shp</Parameter>
+      <Parameter name="type">shape</Parameter>
+    </Datasource>
+  </Layer>
+  <Layer>
+    <StyleName>islands-space</StyleName>
+    <Datasource>
+      <Parameter name="file">ballainvilliers/ballainvilliers-islands.shp</Parameter>
+      <Parameter name="type">shape</Parameter>
+    </Datasource>
+  </Layer>
+
+  <Layer>
+    <StyleName>sidewalks-space</StyleName>
+    <Datasource>
+      <Parameter name="file">ballainvilliers/ballainvilliers-sidewalks.shp</Parameter>
+      <Parameter name="type">shape</Parameter>
+    </Datasource>
+  </Layer>
+
+
+    <Layer>
+    <StyleName>crossings</StyleName>
+    <Datasource>
+      <Parameter name="file">ballainvilliers/ballainvilliers-crossings.shp</Parameter>
+      <Parameter name="type">shape</Parameter>
+    </Datasource>
+  </Layer>
+
+  <Layer>
+    <StyleName>sidewalks</StyleName>
+    <Datasource>
+      <Parameter name="file">ballainvilliers/ballainvilliers-sidewalks.shp</Parameter>
+      <Parameter name="type">shape</Parameter>
+    </Datasource>
+  </Layer>
+  <Layer>
+    <StyleName>islands</StyleName>
+    <Datasource>
+      <Parameter name="file">ballainvilliers/ballainvilliers-islands.shp</Parameter>
+      <Parameter name="type">shape</Parameter>
+    </Datasource>
+  </Layer>
+
+</Map>
