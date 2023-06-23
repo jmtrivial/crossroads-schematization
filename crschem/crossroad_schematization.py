@@ -1,5 +1,6 @@
 from shapely.geometry import Point, LineString, MultiLineString, LinearRing, Polygon
 import osmnx
+import os
 import networkx
 import numpy as np
 import copy
@@ -462,9 +463,10 @@ class CrossroadSchematization:
 
 
 
+
     def toPdf(self, filename, log_files = False):
         self.to_printable_internal(filename, log_files)
-        
+
 
     def toTif(self, filename, log_files = False, dpi = -1):
         self.to_printable_internal(filename, log_files, dpi)
@@ -488,6 +490,16 @@ class CrossroadSchematization:
                             c.Crossing.toGDFCrossings(self.crossings).to_crs(crs)])
         
         df.to_file(filename, driver='GeoJSON')
+
+
+    def toShapefiles(self, filename, only_reachable_islands = False, crs = "EPSG:4326"):
+        filename, file_extension = os.path.splitext(filename)
+
+        self.toGDFInnerRegion().to_crs(crs).to_file(filename + "-inner" + file_extension)
+        c.TurningSidewalk.toGDFSidewalks(self.merged_sidewalks).to_crs(crs).to_file(filename + "-sidewalks" + file_extension)
+        c.Branch.toGDFBranches(self.branches).to_crs(crs).to_file(filename + "-branches" + file_extension)
+        c.TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands).to_crs(crs).to_file(filename + "-islands" + file_extension)
+        c.Crossing.toGDFCrossings(self.crossings).to_crs(crs).to_file(filename + "-crossings" + file_extension)
 
 
     def show(self, 

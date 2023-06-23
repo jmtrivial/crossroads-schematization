@@ -50,7 +50,7 @@ group_output = parser.add_argument_group("Output", "Display, log or save results
 group_output.add_argument('-l', '--log-files', help='keep intermediate files and give their name in output', action='store_true')
 group_output.add_argument('-d', '--display-all', help='display all steps', action='store_true')
 group_output.add_argument('--display-preview', help='display a preview of the crossroad schematization', action='store_true')
-group_output.add_argument('-o', '--output', help='output file (supported format: geojson, pdf, tif)', type=FileOpener('w'))
+group_output.add_argument('-o', '--output', help='output file (supported format: geojson, pdf, tif, shp)', type=FileOpener('w'))
 
 group_preview = parser.add_argument_group("Preview options", "Parameters used by the preview display")
 group_preview.add_argument('--osm', help='display OpenStreetMap network', action='store_true')
@@ -108,6 +108,9 @@ try:
         elif args.output.filename.endswith(".geojson"):
             print("Exporting as geojson:", args.output.filename)
             crschem.toGeojson(args.output.filename, args.non_reachable_islands)
+        elif args.output.filename.endswith(".shp"):
+            print("Exporting as shapefile:", args.output.filename)
+            crschem.toShapefiles(args.output.filename, args.non_reachable_islands)
         else:
             print("Unknown output format")
             
