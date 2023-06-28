@@ -1,8 +1,11 @@
+<!-- 300 DPI correspond à 118,11 pixels par centimètre.
+  On va donc utiliser l'approximation: 1mm = 12 pixels
+ -->
 <Map background-color="white">
   <Style name="inner">
     <Rule>
       <!-- inner region with dots -->
-      <PolygonPatternSymbolizer file="images/point.png"/>
+      <PolygonPatternSymbolizer file="images/point-300.png"/>
     </Rule>
   </Style>
 
@@ -11,13 +14,13 @@
   <Style name="sidewalks-space">
     <Rule>
       <!-- confort space (white) -->
-      <LineSymbolizer stroke="#fff" stroke-width="45" stroke-linejoin="round" stroke-linecap="round" />
+      <LineSymbolizer stroke="#fff" stroke-width="48" stroke-linejoin="round" stroke-linecap="round" />
     </Rule>
   </Style>
 
   <Style name="sidewalks">
     <Rule>
-      <LineSymbolizer stroke="#000" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" />
+      <LineSymbolizer stroke="#000" stroke-width="12" stroke-linejoin="round" stroke-linecap="round" />
     </Rule>
   </Style>
 
@@ -25,12 +28,12 @@
 
   <Style name="islands-space">
     <Rule>
-      <LineSymbolizer stroke="#fff" stroke-width="95" stroke-linejoin="round" stroke-linecap="round" />
+      <LineSymbolizer stroke="#fff" stroke-width="144" stroke-linejoin="round" stroke-linecap="round" />
     </Rule>
   </Style>
   <Style name="islands">
     <Rule>
-      <LineSymbolizer stroke="#000" stroke-width="60" stroke-linejoin="round" stroke-linecap="round" />
+      <LineSymbolizer stroke="#000" stroke-width="96" stroke-linejoin="round" stroke-linecap="round" />
     </Rule>
   </Style>
 
@@ -38,7 +41,10 @@
   <Style name="crossings">
     <Rule>
       <Filter>[type] = crossing</Filter>
-      <PointSymbolizer file="images/crossing-3.png" transform="rotate(180 + (-[orientatio] / 3.14) * 180)" allow-overlap="yes" />
+      <!-- TODO: add images for streets with a different width -->
+      
+      <!-- 3 meter street -->
+      <PointSymbolizer file="images/crossing-3-300.png" transform="rotate(180 + (-[orientatio] / 3.14) * 180)" allow-overlap="yes" />
     </Rule>
   </Style>
 
