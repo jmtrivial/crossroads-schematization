@@ -51,6 +51,7 @@ group_output.add_argument('-l', '--log-files', help='keep intermediate files and
 group_output.add_argument('-d', '--display-all', help='display all steps', action='store_true')
 group_output.add_argument('--display-preview', help='display a preview of the crossroad schematization', action='store_true')
 group_output.add_argument('-o', '--output', help='output file (supported format: geojson, pdf, tif, shp)', type=FileOpener('w'))
+group_output.add_argument('--dpi', help='dpi for tif export', type=int, choices=[96, 300], default=300)
 
 group_preview = parser.add_argument_group("Preview options", "Parameters used by the preview display")
 group_preview.add_argument('--osm', help='display OpenStreetMap network', action='store_true')
@@ -102,7 +103,7 @@ try:
             crschem.toPdf(args.output.filename, args.log_files)
         elif args.output.filename.endswith(".tif"):
             print("Exporting as tif:", args.output.filename)
-            crschem.toTif(args.output.filename, args.log_files)
+            crschem.toTif(args.output.filename, args.log_files, resolution=args.dpi)
         elif args.output.filename.endswith(".svg"):
             print("Exporting as svg:", args.output.filename)
             print("!! Legacy export")
