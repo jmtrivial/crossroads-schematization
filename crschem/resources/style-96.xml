@@ -1,11 +1,11 @@
-<!-- 300 DPI correspond à 118,11 pixels par centimètre.
-  On va donc utiliser l'approximation: 1mm = 12 pixels
+<!-- 96 DPI correspond à 37,8 pixels par centimètre.
+  On va donc utiliser l'approximation: 1mm = 3,78 ~= 4 pixels
  -->
 <Map background-color="white">
   <Style name="inner">
     <Rule>
       <!-- inner region with dots -->
-      <PolygonPatternSymbolizer file="point-300.svg"/>
+      <PolygonPatternSymbolizer file="point-96.svg"/>
     </Rule>
   </Style>
 
@@ -14,13 +14,13 @@
   <Style name="sidewalks-space">
     <Rule>
       <!-- confort space (white) -->
-      <LineSymbolizer stroke="#fff" stroke-width="48" stroke-linejoin="round" stroke-linecap="round" />
+      <LineSymbolizer stroke="#fff" stroke-width="16" stroke-linejoin="round" stroke-linecap="round" />
     </Rule>
   </Style>
 
   <Style name="sidewalks">
     <Rule>
-      <LineSymbolizer stroke="#000" stroke-width="12" stroke-linejoin="round" stroke-linecap="round" />
+      <LineSymbolizer stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" />
     </Rule>
   </Style>
 
@@ -28,14 +28,14 @@
 
   <Style name="islands-space">
     <Rule>
-      <LineSymbolizer stroke="#fff" stroke-width="144" stroke-linejoin="round" stroke-linecap="round" />
-      <PointSymbolizer file="island-300-white.svg" allow-overlap="yes"/>
+      <LineSymbolizer stroke="#fff" stroke-width="48" stroke-linejoin="round" stroke-linecap="round" />
+      <PointSymbolizer file="island-96-white.svg" allow-overlap="yes"/>
     </Rule>
   </Style>
   <Style name="islands">
     <Rule>
-      <LineSymbolizer stroke="#000" stroke-width="96" stroke-linejoin="round" stroke-linecap="round" />
-      <PointSymbolizer file="island-300.svg" allow-overlap="yes"/>
+      <LineSymbolizer stroke="#000" stroke-width="32" stroke-linejoin="round" stroke-linecap="round" />
+      <PointSymbolizer file="island-96.svg" allow-overlap="yes"/>
     </Rule>
   </Style>
 
@@ -47,7 +47,7 @@
       <!-- TODO: add images for streets with a different width -->
       
       <!-- 3 meter street -->
-      <PointSymbolizer file="crossing-3-300.svg" transform="rotate(180 + (-[orientatio] / 3.14) * 180)" allow-overlap="yes" />
+      <PointSymbolizer file="crossing-3-96.svg" transform="rotate(180 + (-[orientatio] / 3.14) * 180)" allow-overlap="yes" />
     </Rule>
   </Style>
 

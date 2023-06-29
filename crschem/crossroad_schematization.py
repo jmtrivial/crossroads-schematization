@@ -556,15 +556,16 @@ class CrossroadSchematization:
         self.toShapefiles(dirName + "/crossroad.shp")
 
         # then move style file (xml) in this directory
-        if resolution in [300]:
+        if resolution in [96, 300]:
             for f in ["style-" + str(resolution) + ".xml",
-                        "crossing-3-" + str(resolution) + ".png", 
-                        "point-" + str(resolution) + ".png",
+                        "crossing-3-" + str(resolution) + ".svg", 
+                        "point-" + str(resolution) + ".svg",
                         "island-" + str(resolution) + ".svg",
                         "island-" + str(resolution) + "-white.svg"]:
                 shutil.copy(os.path.dirname(__file__) + "/resources/" + f, dirName)
         else:
             print("not supported DPI")
+            return
 
         # finally render the image
         self.toTifInternal(dirName, filename, log_files, resolution, scale)
