@@ -10,6 +10,13 @@ import pandas
 import re
 import matplotlib.pyplot as plt
 import crseg.segmentation as cseg
+import shutil
+import mapnik
+import mapnik.printing
+from mapnik.printing.conversions import m2px
+import sys
+from osgeo import gdal, osr
+import tempfile
 
 from . import utils as u
 from . import processing as p
@@ -55,6 +62,11 @@ class CrossroadSchematization:
 
         self.load_osm(osm_oriented, osm_unoriented)
 
+        # get crossroad center
+        is_n = cr_input["type"] == "crossroads"
+        self.center = cr_input[is_n]["geometry"][0]
+
+
 
     def build(latitude, longitude,
               C0, C1, C2,
@@ -71,7 +83,6 @@ class CrossroadSchematization:
         import crmodel.crmodel as cm
         import osmnx as ox
         from copy import deepcopy
-        import tempfile
         import os
 
         # load data from OSM
@@ -463,13 +474,104 @@ class CrossroadSchematization:
 
 
 
-
     def toPdf(self, filename, log_files = False):
         self.to_printable_internal(filename, log_files)
 
 
-    def toTif(self, filename, log_files = False, dpi = -1):
-        self.to_printable_internal(filename, log_files, dpi)
+    def toTifInternal(self, dirName, filename, log_files, resolution, scale):
+        widthMeter = 0.2
+        heightMeter = 0.14
+
+        # scale (ie 1cm in the map is scale "scale" * 1 cm in reality)
+        scale = 400
+
+        width = int(m2px(widthMeter, resolution))
+        height = int(m2px(heightMeter, resolution))
+
+        mapfile = dirName + "/style-" + str(resolution) + ".xml"
+        output = filename
+
+        pseudo_mercator = mapnik.Projection('+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over')
+        mercator = mapnik.Projection('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+        trans = mapnik.ProjTransform(mercator, pseudo_mercator)
+
+
+        # make a new Map object for the given mapfile
+        m = mapnik.Map(width, height)
+        mapnik.load_map(m, mapfile)
+
+        # ensure the target map projection is pseudo-mercator
+        m.srs = pseudo_mercator.params()
+
+        # get crossroads center
+
+        pmerc_centre = trans.forward(mapnik.Coord(self.center.x, self.center.y))
+
+        # compute min and max coordinates
+        dx = widthMeter / 2 * scale
+        minx = pmerc_centre.x - dx
+        maxx = pmerc_centre.x + dx
+
+        # grow the height bbox, as we only accurately set the width bbox
+        m.aspect_fix_mode = mapnik.aspect_fix_mode.ADJUST_BBOX_HEIGHT
+
+        bounds = mapnik.Box2d(minx, pmerc_centre.y - 10, maxx, pmerc_centre.y + 10) # the y bounds will be fixed by mapnik due to ADJUST_BBOX_HEIGHT
+        m.zoom_to_box(bounds)
+
+        # render the map image to a file
+        mapnik.render_to_file(m, output)
+
+        # set geotiff information
+        gdal.UseExceptions()
+        pxSize = 1 / m2px(1, resolution) * scale
+        ds = gdal.Open(output, gdal.GA_Update)
+        gt = [
+            #GT(0) x-coordinate of the upper-left corner of the upper-left pixel.
+            m.envelope()[0],
+            #GT(1) w-e pixel resolution / pixel width.
+            pxSize,
+            #GT(2) row rotation (typically zero).
+            0.0,
+            #GT(3) y-coordinate of the upper-left corner of the upper-left pixel.
+            m.envelope()[3],
+            #GT(4) column rotation (typically zero).
+            0.0,
+            #GT(5) n-s pixel resolution / pixel height (negative value for a north-up image).
+            -pxSize
+        ]
+        ds.SetGeoTransform(gt)
+
+        sr = osr.SpatialReference()
+        sr.SetFromUserInput(pseudo_mercator.params())
+        wkt = sr.ExportToWkt()
+        ds.SetProjection(wkt)
+
+
+
+    def toTif(self, filename, log_files = False, resolution = 300, scale = 400):
+        # first export to shapefiles in a temporary directory
+        dirName = tempfile.mkdtemp()
+        if log_files:
+            print('Temporary directory (styling):', dirName)
+        self.toShapefiles(dirName + "/crossroad.shp")
+
+        # then move style file (xml) in this directory
+        if resolution in [300]:
+            for f in ["style-" + str(resolution) + ".xml",
+                        "crossing-3-" + str(resolution) + ".png", 
+                        "point-" + str(resolution) + ".png",
+                        "island-" + str(resolution) + ".svg",
+                        "island-" + str(resolution) + "-white.svg"]:
+                shutil.copy(os.path.dirname(__file__) + "/resources/" + f, dirName)
+        else:
+            print("not supported DPI")
+
+        # finally render the image
+        self.toTifInternal(dirName, filename, log_files, resolution, scale)
+
+        # then delete the temporary directory
+        if not log_files:
+            os.rmdir(dirName)
         
 
     def toSvg(self, filename, only_reachable_islands = False):
@@ -495,10 +597,16 @@ class CrossroadSchematization:
     def toShapefiles(self, filename, only_reachable_islands = False, crs = "EPSG:4326"):
         filename, file_extension = os.path.splitext(filename)
 
-        self.toGDFInnerRegion().to_crs(crs).to_file(filename + "-inner" + file_extension)
-        c.TurningSidewalk.toGDFSidewalks(self.merged_sidewalks).to_crs(crs).to_file(filename + "-sidewalks" + file_extension)
-        c.Branch.toGDFBranches(self.branches).to_crs(crs).to_file(filename + "-branches" + file_extension)
-        c.TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands).to_crs(crs).to_file(filename + "-islands" + file_extension)
+        self.toGDFInnerRegion().to_crs(crs).to_file(filename + "-inner" + file_extension) # region
+        c.TurningSidewalk.toGDFSidewalks(self.merged_sidewalks).to_crs(crs).to_file(filename + "-sidewalks" + file_extension) # lines
+        c.Branch.toGDFBranches(self.branches).to_crs(crs).to_file(filename + "-branches" + file_extension) # lines
+        
+        # islands can be points and lines
+        islands = c.TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands).to_crs(crs)
+        islands[islands.geometry.type == 'LineString'].to_file(filename + "-islands-lines" + file_extension)
+        islands[islands.geometry.type == 'Point'].to_file(filename + "-islands-points" + file_extension)
+
+        # points
         c.Crossing.toGDFCrossings(self.crossings).to_crs(crs).to_file(filename + "-crossings" + file_extension)
 
 

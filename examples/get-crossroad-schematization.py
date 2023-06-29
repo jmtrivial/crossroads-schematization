@@ -98,12 +98,14 @@ try:
     
         if args.output.filename.endswith(".pdf"):
             print("Exporting as pdf:", args.output.filename)
+            print("!! Legacy export")
             crschem.toPdf(args.output.filename, args.log_files)
         elif args.output.filename.endswith(".tif"):
             print("Exporting as tif:", args.output.filename)
             crschem.toTif(args.output.filename, args.log_files)
         elif args.output.filename.endswith(".svg"):
             print("Exporting as svg:", args.output.filename)
+            print("!! Legacy export")
             crschem.toSvg(args.output.filename, args.non_reachable_islands)
         elif args.output.filename.endswith(".geojson"):
             print("Exporting as geojson:", args.output.filename)
