@@ -571,7 +571,7 @@ class CrossroadSchematization:
 
         # then delete the temporary directory
         if not log_files:
-            os.rmdir(dirName)
+            shutil.rmtree(dirName)
         
 
     def toSvg(self, filename, only_reachable_islands = False):
