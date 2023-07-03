@@ -17,12 +17,40 @@ from mapnik.printing.conversions import m2px
 import sys
 from osgeo import gdal, osr
 import tempfile
+from enum import Enum
 
 from . import utils as u
 from . import processing as p
 from . import crossroad as c
 
+
+
 class CrossroadSchematization:
+
+    class Layout(Enum):
+        A5_portrait = 0
+        A5_landscape = 1
+        A4_portrait = 2
+        A4_landscape = 3
+        
+        def __str__(self):
+                return self.name
+
+        def width(self, margin = 0.01):
+            if self == CrossroadSchematization.Layout.A5_landscape or self == CrossroadSchematization.Layout.A4_portrait:
+                return 0.21 - margin * 2
+            elif self == CrossroadSchematization.Layout.A5_portrait:
+                return 0.1485 - margin * 2
+            else: # self == Layout.A4_landscape
+                return 0.297 - margin * 2
+
+        def height(self, margin = 0.01):
+            if self == CrossroadSchematization.Layout.A5_portrait or self == CrossroadSchematization.Layout.A4_landscape:
+                return 0.21 - margin * 2
+            elif self == CrossroadSchematization.Layout.A5_landscape:
+                return 0.1485 - margin * 2
+            else: # self == Layout.A4_portrait
+                return 0.297 - margin * 2
 
     node_tags_to_keep = [
         # general informations
@@ -478,9 +506,9 @@ class CrossroadSchematization:
         self.to_printable_internal(filename, log_files)
 
 
-    def toTifInternal(self, dirName, filename, log_files, resolution, scale):
-        widthMeter = 0.2
-        heightMeter = 0.14
+    def toTifInternal(self, dirName, filename, log_files, resolution, scale, layout, marginCM):
+        widthMeter = layout.width(marginCM / 100)
+        heightMeter = layout.height(marginCM / 100)
 
         # scale (ie 1cm in the map is scale "scale" * 1 cm in reality)
         scale = 400
@@ -548,7 +576,7 @@ class CrossroadSchematization:
 
 
 
-    def toTif(self, filename, log_files = False, resolution = 300, scale = 400):
+    def toTif(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1):
         # first export to shapefiles in a temporary directory
         dirName = tempfile.mkdtemp()
         if log_files:
@@ -568,7 +596,7 @@ class CrossroadSchematization:
             return
 
         # finally render the image
-        self.toTifInternal(dirName, filename, log_files, resolution, scale)
+        self.toTifInternal(dirName, filename, log_files, resolution, scale, layout, margin)
 
         # then delete the temporary directory
         if not log_files:
