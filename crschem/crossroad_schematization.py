@@ -510,9 +510,6 @@ class CrossroadSchematization:
         widthMeter = layout.width(marginCM / 100)
         heightMeter = layout.height(marginCM / 100)
 
-        # scale (ie 1cm in the map is scale "scale" * 1 cm in reality)
-        scale = 400
-
         width = int(m2px(widthMeter, resolution))
         height = int(m2px(heightMeter, resolution))
 
@@ -584,13 +581,14 @@ class CrossroadSchematization:
         self.toShapefiles(dirName + "/crossroad.shp")
 
         # then move style file (xml) in this directory
+        os.mkdir(dirName + "/" + str(scale))
         if resolution in [96, 300]:
             for f in ["style-" + str(resolution) + ".xml",
                         "crossing-3-" + str(resolution) + ".svg", 
                         "point-" + str(resolution) + ".svg",
                         "island-" + str(resolution) + ".svg",
                         "island-" + str(resolution) + "-white.svg"]:
-                shutil.copy(os.path.dirname(__file__) + "/resources/" + f, dirName)
+                shutil.copy(os.path.dirname(__file__) + "/resources/" + str(scale) + "/" + f, dirName + "/")
         else:
             print("not supported DPI")
             return

@@ -51,6 +51,7 @@ group_output.add_argument('-l', '--log-files', help='keep intermediate files and
 group_output.add_argument('-d', '--display-all', help='display all steps', action='store_true')
 group_output.add_argument('--display-preview', help='display a preview of the crossroad schematization', action='store_true')
 group_output.add_argument('-o', '--output', help='output file (supported format: geojson, pdf, tif, shp)', type=FileOpener('w'))
+group_output.add_argument('--scale', help='Scale of the map. Default: 400 (for 1:400)', type=int, default=400, choices=[400, 500])
 group_output.add_argument('--dpi', help='dpi for tif export', type=int, choices=[96, 300], default=300)
 group_output.add_argument('--layout', help='Map layout.', type=lambda s: cs.CrossroadSchematization.Layout[s], choices=list(cs.CrossroadSchematization.Layout))
 group_output.add_argument('--margin', help='Margin in cm. Default: 1.0cm', type=float, default=1)
@@ -105,7 +106,7 @@ try:
             crschem.toPdf(args.output.filename, args.log_files)
         elif args.output.filename.endswith(".tif"):
             print("Exporting as tif:", args.output.filename)
-            crschem.toTif(args.output.filename, args.log_files, resolution=args.dpi, layout=args.layout, margin=args.margin)
+            crschem.toTif(args.output.filename, args.log_files, resolution=args.dpi, layout=args.layout, margin=args.margin, scale=args.scale)
         elif args.output.filename.endswith(".svg"):
             print("Exporting as svg:", args.output.filename)
             print("!! Legacy export")
