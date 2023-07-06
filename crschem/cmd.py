@@ -105,19 +105,19 @@ def get_crossroad_schematization_command():
 
             if args.output.filename.endswith(".pdf"):
                 print("Exporting as pdf:", args.output.filename)
-                crschem.toPdf(args.output.filename, args.log_files, resolution=args.dpi, layout=args.layout, margin=args.margin, scale=args.scale)
+                crschem.toPdf(args.output.filename, args.log_files, resolution=args.dpi, layout=args.layout, margin=args.margin, scale=args.scale, only_reachable_islands=not args.non_reachable_islands)
             elif args.output.filename.endswith(".tif"):
                 print("Exporting as tif:", args.output.filename)
-                crschem.toTif(args.output.filename, args.log_files, resolution=args.dpi, layout=args.layout, margin=args.margin, scale=args.scale)
+                crschem.toTif(args.output.filename, args.log_files, resolution=args.dpi, layout=args.layout, margin=args.margin, scale=args.scale, only_reachable_islands=not args.non_reachable_islands)
             elif args.output.filename.endswith(".svg"):
                 print("Exporting as svg:", args.output.filename)
-                crschem.toSvg(args.output.filename, args.log_files, resolution=args.dpi, layout=args.layout, margin=args.margin, scale=args.scale)
+                crschem.toSvg(args.output.filename, args.log_files, resolution=args.dpi, layout=args.layout, margin=args.margin, scale=args.scale, only_reachable_islands=not args.non_reachable_islands)
             elif args.output.filename.endswith(".geojson"):
                 print("Exporting as geojson:", args.output.filename)
-                crschem.toGeojson(args.output.filename, args.non_reachable_islands)
+                crschem.toGeojson(args.output.filename, not args.non_reachable_islands)
             elif args.output.filename.endswith(".shp"):
                 print("Exporting as shapefile:", args.output.filename)
-                crschem.toShapefiles(args.output.filename, args.non_reachable_islands)
+                crschem.toShapefiles(args.output.filename, not args.non_reachable_islands)
             else:
                 print("Unknown output format")
                 

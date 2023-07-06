@@ -433,12 +433,12 @@ class CrossroadSchematization:
         return m
 
 
-    def create_style_tmp_directory(self, resolution, scale, log_files):
+    def create_style_tmp_directory(self, resolution, scale, only_reachable_islands, log_files):
         # first export to shapefiles in a temporary directory
         dirName = tempfile.mkdtemp()
         if log_files:
             print('Temporary directory (styling):', dirName)
-        self.toShapefiles(dirName + "/crossroad.shp")
+        self.toShapefiles(dirName + "/crossroad.shp", only_reachable_islands)
 
         # then move style file (xml) in this directory
         os.mkdir(dirName + "/" + str(scale))
@@ -456,9 +456,9 @@ class CrossroadSchematization:
         return dirName
 
 
-    def toPdf(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1):
+    def toPdf(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1, only_reachable_islands = False):
         # first export to shapefiles in a temporary directory
-        dirName = self.create_style_tmp_directory(resolution, scale, log_files)
+        dirName = self.create_style_tmp_directory(resolution, scale, only_reachable_islands, log_files)
         if dirName == "":
             return
         
@@ -509,9 +509,9 @@ class CrossroadSchematization:
         ds.SetProjection(wkt)
 
 
-    def toTif(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1):
+    def toTif(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1, only_reachable_islands = False):
         # first export to shapefiles in a temporary directory
-        dirName = self.create_style_tmp_directory(resolution, scale, log_files)
+        dirName = self.create_style_tmp_directory(resolution, scale, only_reachable_islands, log_files)
         if dirName == "":
             return
 
@@ -523,9 +523,9 @@ class CrossroadSchematization:
             shutil.rmtree(dirName)
         
 
-    def toSvg(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1):
+    def toSvg(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1, only_reachable_islands = False):
         # first export to shapefiles in a temporary directory
-        dirName = self.create_style_tmp_directory(resolution, scale, log_files)
+        dirName = self.create_style_tmp_directory(resolution, scale, only_reachable_islands, log_files)
         if dirName == "":
             return
         
