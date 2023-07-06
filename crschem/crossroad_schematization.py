@@ -463,7 +463,13 @@ class CrossroadSchematization:
         m = self.getMapnikMap(dirName, resolution, scale, layout, margin)
 
         # render the map image to a file
-        mapnik.render_to_file(m, filename)
+        page = mapnik.printing.PDFPrinter(resolution=resolution)
+        page.render_map(m, filename)
+
+        page.finish()
+
+        # TODO: wrong projection (either 4326 and 3857 are not working)
+        page.add_geospatial_pdf_header(m, filename, epsg=4326)
 
 
     def toTifInternal(self, dirName, filename, log_files, resolution, scale, layout, marginCM):
