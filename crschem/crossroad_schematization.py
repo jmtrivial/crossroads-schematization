@@ -506,7 +506,7 @@ class CrossroadSchematization:
         self.to_printable_internal(filename, log_files)
 
 
-    def toTifInternal(self, dirName, filename, log_files, resolution, scale, layout, marginCM):
+    def getMapnikMap(self, dirName, resolution, scale, layout, marginCM):
         widthMeter = layout.width(marginCM / 100)
         heightMeter = layout.height(marginCM / 100)
 
@@ -514,7 +514,6 @@ class CrossroadSchematization:
         height = int(m2px(heightMeter, resolution))
 
         mapfile = dirName + "/style-" + str(resolution) + ".xml"
-        output = filename
 
         pseudo_mercator = mapnik.Projection('+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over')
         mercator = mapnik.Projection('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
@@ -543,13 +542,19 @@ class CrossroadSchematization:
         bounds = mapnik.Box2d(minx, pmerc_centre.y - 10, maxx, pmerc_centre.y + 10) # the y bounds will be fixed by mapnik due to ADJUST_BBOX_HEIGHT
         m.zoom_to_box(bounds)
 
+        return m
+
+    def toTifInternal(self, dirName, filename, log_files, resolution, scale, layout, marginCM):
+        # get the mapnik map
+        m = self.getMapnikMap(dirName, resolution, scale, layout, marginCM)
+
         # render the map image to a file
-        mapnik.render_to_file(m, output)
+        mapnik.render_to_file(m, filename)
 
         # set geotiff information
         gdal.UseExceptions()
         pxSize = 1 / m2px(1, resolution) * scale
-        ds = gdal.Open(output, gdal.GA_Update)
+        ds = gdal.Open(filename, gdal.GA_Update)
         gt = [
             #GT(0) x-coordinate of the upper-left corner of the upper-left pixel.
             m.envelope()[0],
@@ -565,6 +570,7 @@ class CrossroadSchematization:
             -pxSize
         ]
         ds.SetGeoTransform(gt)
+        pseudo_mercator = mapnik.Projection('+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over')
 
         sr = osr.SpatialReference()
         sr.SetFromUserInput(pseudo_mercator.params())
