@@ -436,10 +436,11 @@ class TurningSidewalk:
             if point.flexible:
                 middle_sw = point.coord
                 
-                # first check for basic intersection
                 middle_bevel = Point([(x + y) / 2 for x, y in zip(pred.coord, next.coord)])
+                # first check for basic intersection
+                line = LineString([middle_sw, middle_bevel])
 
-                if not buffered_osm.intersects(middle_bevel):
+                if buffered_osm.intersects(line):
                     # build a more complex turn
                     edge = LineString((middle_bevel, middle_sw))
                     
