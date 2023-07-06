@@ -391,121 +391,6 @@ class CrossroadSchematization:
             self.traffic_islands.append(c.TrafficIsland(traffic_islands_edges[eid], self.osm_input, self.cr_input))
 
 
-    def to_printable_internal(self, filename, log_files, dpi = -1, crs = 3857):
-        from qgis.core import QgsApplication, QgsProject, QgsPrintLayout, QgsLayout, QgsVectorLayer, QgsLayoutExporter, QgsLayoutItemPage, QgsReadWriteContext, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsFeatureRequest, QgsExpression
-        from qgis.PyQt.QtXml import QDomDocument
-        import tempfile
-        import os
-
-        tmp = tempfile.NamedTemporaryFile(mode='w', delete=False) 
-        self.toGeojson(tmp.name, True)
-        qgs = QgsApplication([], False)
-        qgs.initQgis()
-        
-        # get project
-        project = QgsProject.instance()
-        composition = QgsPrintLayout(project)
-        project.setCrs(QgsCoordinateReferenceSystem(crs))
-        
-        # load layers
-        geojson = tmp.name
-        points_crossings_layer = QgsVectorLayer(geojson + '|geometrytype=Point', "points", "ogr")
-        points_islands_layer = QgsVectorLayer(geojson + '|geometrytype=Point', "points", "ogr")
-        points_space_layer = QgsVectorLayer(geojson + '|geometrytype=Point', "points", "ogr")
-        lines_layer = QgsVectorLayer(geojson + '|geometrytype=LineString', "lines", "ogr")
-        lines_space_layer = QgsVectorLayer(geojson + '|geometrytype=LineString', "lines", "ogr")
-        polygons_layer = QgsVectorLayer(geojson + '|geometrytype=Polygon', "polygons", "ogr") # 4326
-        # project them on map
-        project.addMapLayer(polygons_layer)
-        project.addMapLayer(lines_space_layer)
-        project.addMapLayer(points_space_layer)
-        project.addMapLayer(points_crossings_layer)
-        project.addMapLayer(points_islands_layer)
-        project.addMapLayer(lines_layer)
-
-        # compute region of interest
-        polygons_layer.selectAll() # the polygon corresponding to the car ways
-        pg_box = polygons_layer.boundingBoxOfSelected()
-        points_space_layer.selectByRect(pg_box) # only keep points inside (crossings, islands)
-        pt_box = points_space_layer.boundingBoxOfSelected()
-        # then combine both rectangles to zoom on the points within the main region
-        pp = 2
-        pb = 1
-        sourceCrs = QgsCoordinateReferenceSystem(polygons_layer.crs())
-        destCrs = QgsCoordinateReferenceSystem(project.crs())
-        tr = QgsCoordinateTransform(sourceCrs, destCrs, project)
-
-        box = QgsRectangle((pt_box.xMinimum() * pp + pg_box.xMinimum() * pb) / (pp + pb),
-                           (pt_box.yMinimum() * pp + pg_box.yMinimum() * pb) / (pp + pb),
-                           (pt_box.xMaximum() * pp + pg_box.xMaximum() * pb) / (pp + pb),
-                           (pt_box.yMaximum() * pp + pg_box.yMaximum() * pb) / (pp + pb))
-        box = tr.transform(box)
-
-        # load layout
-        layout = QgsLayout(project)
-        layout.initializeDefaults()
-        layout.pageCollection().page(0).setPageSize('A5', QgsLayoutItemPage.Orientation.Landscape)
-        template_file = open(os.path.dirname(__file__) + "/resources/tactile-a5.qpt")
-        template_content = template_file.read()
-        template_file.close()
-        document = QDomDocument()
-        document.setContent(template_content)
-        items, ok = layout.loadFromTemplate(document, QgsReadWriteContext(), False)
-        for i in items:
-            if i.id() == "Carte 1":
-                # zoom on the intersection
-                i.zoomToExtent(box)
-                # if the zoom is more than 1:400, we come back to this scale
-                if i.scale() < 400:
-                    i.setScale(400)
-        # to solve the SVG relative path in qml files, use a trick [BEGIN]
-        filename = os.path.abspath(filename)
-        cwd = os.getcwd()
-        os.chdir(os.path.dirname(__file__))
-
-        # load layer styles and assign them to the layers
-        points_islands_style = os.path.dirname(__file__) + "/resources/rendering-nodes-islands.qml" # TODO: integrate them for pipe
-        points_crossings_style = os.path.dirname(__file__) + "/resources/rendering-nodes-crossings.qml"
-        points_space_style = os.path.dirname(__file__) + "/resources/rendering-nodes-space.qml"
-        lines_style = os.path.dirname(__file__) + "/resources/rendering-polylines.qml"
-        polygons_style = os.path.dirname(__file__) + "/resources/rendering-areas.qml" # sld
-        lines_space_style = os.path.dirname(__file__) + "/resources/rendering-polylines-space.qml"
-        
-        lines_layer.loadNamedStyle(lines_style)
-        points_space_layer.loadNamedStyle(points_space_style)
-        points_crossings_layer.loadNamedStyle(points_crossings_style)
-        points_islands_layer.loadNamedStyle(points_islands_style)
-        lines_space_layer.loadNamedStyle(lines_space_style)
-        polygons_layer.loadNamedStyle(polygons_style)
-        
-        exporter = QgsLayoutExporter(layout)
-        settings = exporter.PdfExportSettings()
-        settings.rasterizeWholeImage = False
-        if filename.endswith(".pdf"):
-            exporter.exportToPdf(filename, settings)
-        else:
-            settings = QgsLayoutExporter.ImageExportSettings()
-            if dpi > 0:
-                settings.dpi = dpi
-            exporter.exportToImage(filename, settings)
-        
-        project.clear()
-        qgs.exit()
-        # trick [END]: go back to the initial directory
-        os.chdir(cwd)
-        
-        # delete temporary file if not required
-        if log_files:
-            print("geojson:", tmp.name)
-        else:
-            os.unlink(tmp.name)
-
-
-
-    def toPdf(self, filename, log_files = False):
-        self.to_printable_internal(filename, log_files)
-
-
     def getMapnikMap(self, dirName, resolution, scale, layout, marginCM):
         widthMeter = layout.width(marginCM / 100)
         heightMeter = layout.height(marginCM / 100)
@@ -544,6 +429,43 @@ class CrossroadSchematization:
 
         return m
 
+
+    def create_style_tmp_directory(self, resolution, scale, log_files):
+        # first export to shapefiles in a temporary directory
+        dirName = tempfile.mkdtemp()
+        if log_files:
+            print('Temporary directory (styling):', dirName)
+        self.toShapefiles(dirName + "/crossroad.shp")
+
+        # then move style file (xml) in this directory
+        os.mkdir(dirName + "/" + str(scale))
+        if resolution in [96, 300]:
+            for f in ["style-" + str(resolution) + ".xml",
+                        "crossing-3-" + str(resolution) + ".svg", 
+                        "point-" + str(resolution) + ".svg",
+                        "island-" + str(resolution) + ".svg",
+                        "island-" + str(resolution) + "-white.svg"]:
+                shutil.copy(os.path.dirname(__file__) + "/resources/" + str(scale) + "/" + f, dirName + "/")
+        else:
+            print("not supported DPI")
+            return ""
+        
+        return dirName
+
+
+    def toPdf(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1):
+        # first export to shapefiles in a temporary directory
+        dirName = self.create_style_tmp_directory(resolution, scale, log_files)
+        if dirName == "":
+            return
+        
+        # get the mapnik map
+        m = self.getMapnikMap(dirName, resolution, scale, layout, margin)
+
+        # render the map image to a file
+        mapnik.render_to_file(m, filename)
+
+
     def toTifInternal(self, dirName, filename, log_files, resolution, scale, layout, marginCM):
         # get the mapnik map
         m = self.getMapnikMap(dirName, resolution, scale, layout, marginCM)
@@ -578,29 +500,6 @@ class CrossroadSchematization:
         ds.SetProjection(wkt)
 
 
-    def create_style_tmp_directory(self, resolution, scale, log_files):
-        # first export to shapefiles in a temporary directory
-        dirName = tempfile.mkdtemp()
-        if log_files:
-            print('Temporary directory (styling):', dirName)
-        self.toShapefiles(dirName + "/crossroad.shp")
-
-        # then move style file (xml) in this directory
-        os.mkdir(dirName + "/" + str(scale))
-        if resolution in [96, 300]:
-            for f in ["style-" + str(resolution) + ".xml",
-                        "crossing-3-" + str(resolution) + ".svg", 
-                        "point-" + str(resolution) + ".svg",
-                        "island-" + str(resolution) + ".svg",
-                        "island-" + str(resolution) + "-white.svg"]:
-                shutil.copy(os.path.dirname(__file__) + "/resources/" + str(scale) + "/" + f, dirName + "/")
-        else:
-            print("not supported DPI")
-            return ""
-        
-        return dirName
-
-
     def toTif(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1):
         # first export to shapefiles in a temporary directory
         dirName = self.create_style_tmp_directory(resolution, scale, log_files)
@@ -615,9 +514,17 @@ class CrossroadSchematization:
             shutil.rmtree(dirName)
         
 
-    def toSvg(self, filename, only_reachable_islands = False):
-        # TODO
-        print("not yet implemented")
+    def toSvg(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1):
+        # first export to shapefiles in a temporary directory
+        dirName = self.create_style_tmp_directory(resolution, scale, log_files)
+        if dirName == "":
+            return
+        
+        # get the mapnik map
+        m = self.getMapnikMap(dirName, resolution, scale, layout, margin)
+
+        # render the map image to a file
+        mapnik.render_to_file(m, filename)
 
 
     def toGDFInnerRegion(self):
