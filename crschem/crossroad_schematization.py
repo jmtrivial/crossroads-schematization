@@ -80,6 +80,7 @@ class CrossroadSchematization:
                  ignore_crossings_for_sidewalks = False,
                  use_fixed_width_on_branches = False,
                  turn_shape = c.TurningSidewalk.TurnShape.ADJUSTED_ANGLE,
+                 remove_doubled_crossings = True,
                  osm_buffer_size_meters = 200, 
                  distance_kerb_footway = 0.5,
                  white_space_meter = 1.5):
@@ -90,6 +91,7 @@ class CrossroadSchematization:
         self.ignore_crossings_for_sidewalks = ignore_crossings_for_sidewalks
         self.use_fixed_width_on_branches = use_fixed_width_on_branches
         self.turn_shape = turn_shape
+        self.remove_doubled_crossings = remove_doubled_crossings
 
         self.load_osm(osm_oriented, osm_unoriented)
 
@@ -104,6 +106,7 @@ class CrossroadSchematization:
               ignore_crossings_for_sidewalks = False,
               use_fixed_width_on_branches = False,
               turn_shape = c.TurningSidewalk.TurnShape.ADJUSTED_ANGLE,
+              remove_doubled_crossings = True,
               verbose = True,
               ignore_cache = False,
               overpass = False,
@@ -165,7 +168,8 @@ class CrossroadSchematization:
         return CrossroadSchematization(cr_input, G_init, 
                                         ignore_crossings_for_sidewalks=ignore_crossings_for_sidewalks, 
                                         use_fixed_width_on_branches=use_fixed_width_on_branches,
-                                        turn_shape=turn_shape)
+                                        turn_shape=turn_shape,
+                                        remove_doubled_crossings=remove_doubled_crossings)
 
     def is_valid_model(self):
         for index, elem in self.cr_input.iterrows():
@@ -197,7 +201,8 @@ class CrossroadSchematization:
         print("Creating crossings")
         self.crossings = c.Crossing.create_crossings(self.osm_input, self.cr_input, 
                                                      self.osm_input_oriented,
-                                                     self.distance_kerb_footway)
+                                                     self.distance_kerb_footway,
+                                                     self.remove_doubled_crossings)
 
         # assemble sidewalks
         print("Assembling sidewalks")

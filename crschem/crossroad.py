@@ -1019,11 +1019,31 @@ class Crossing:
     def build_vectors(self, nodes):
         return [u.Utils.normalized_vector(self.osm_input.nodes[self.node_id], self.osm_input.nodes[n]) for n in nodes]
 
+
+    def has_adjacent_crossing(osm_input, cr_input, node, radius = 5):
+        # check for all nodes near to the given node
+        for n in osm_input.nodes:
+            if n != node and Crossing.is_crossing(n, cr_input):
+                if u.Utils.edge_length(osm_input.nodes[n], osm_input.nodes[node]) < radius:
+                    return True
+
+        return False
+
     
-    def create_crossings(osm_input, cr_input, osm_input_oriented, distance_kerb_footway):
-        return dict([(n, Crossing(n, osm_input, cr_input, osm_input_oriented, distance_kerb_footway)) for n in osm_input.nodes if 
+    def create_crossings(osm_input, cr_input, osm_input_oriented, distance_kerb_footway, remove_doubled_crossings):
+        crossings = dict([(n, Crossing(n, osm_input, cr_input, osm_input_oriented, distance_kerb_footway)) for n in osm_input.nodes if 
                       osm_input.nodes[n]["type"] == "input" and Crossing.is_crossing(n, cr_input)])
 
+        if remove_doubled_crossings:
+            print("Removing double crossings")
+            # for each crossing
+            for n in list(crossings.keys()):
+                # if this crossing is on a traffic light node
+                if "highway" in osm_input.nodes[n] and osm_input.nodes[n]["highway"] == "traffic_signals":
+                    if Crossing.has_adjacent_crossing(osm_input, cr_input, n):
+                        del crossings[n]
+
+        return crossings
 
     def is_inside(self, region):
         return region.contains(Point(Point(self.osm_input.nodes[self.node_id]["x"], self.osm_input.nodes[self.node_id]["y"])))

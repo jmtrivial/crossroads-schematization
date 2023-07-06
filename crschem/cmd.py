@@ -41,6 +41,7 @@ def get_crossroad_schematization_command():
     group_preprocess.add_argument('--c2', help='Intersection size (aggregation by cycle detection). Default: 4.', type=float, default=4)
 
     group_process = parser.add_argument_group("Processing", "Parameters of the processing")
+    group_process.add_argument('--keep-doubled-crossings', help='In case of double crossings (current bad configuration in OSM data with traffic lights), keep both nodes.', action='store_true')
     group_process.add_argument('--ignore-crossings-for-sidewalks', help='Do not use crossings to shape the sidewalks', action='store_true')
     group_process.add_argument('--use-fixed-width-on-branches', help='Use a fixed width on each branch (do not evaluate the width adjustment)', action='store_true')
     group_process.add_argument('--turn-shape', help='Turn shape.', type=lambda s: c.TurningSidewalk.TurnShape[s], choices=list(c.TurningSidewalk.TurnShape))
@@ -81,6 +82,7 @@ def get_crossroad_schematization_command():
                                                     ignore_crossings_for_sidewalks = args.ignore_crossings_for_sidewalks,
                                                     use_fixed_width_on_branches = args.use_fixed_width_on_branches,
                                                     turn_shape = args.turn_shape,
+                                                    remove_doubled_crossings = not args.keep_doubled_crossings,
                                                     ignore_cache = args.ignore_cache,
                                                     overpass = args.overpass,
                                                     log_files = args.log_files)
