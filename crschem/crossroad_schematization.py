@@ -36,6 +36,9 @@ class CrossroadSchematization:
         def __str__(self):
                 return self.name
 
+        def page_size(self):
+            return (self.width(0.0), self.height(0.0))
+
         def width(self, margin = 0.01):
             if self == CrossroadSchematization.Layout.A5_landscape or self == CrossroadSchematization.Layout.A4_portrait:
                 return 0.21 - margin * 2
@@ -463,7 +466,7 @@ class CrossroadSchematization:
         m = self.getMapnikMap(dirName, resolution, scale, layout, margin)
 
         # render the map image to a file
-        page = mapnik.printing.PDFPrinter(resolution=resolution)
+        page = mapnik.printing.PDFPrinter(pagesize=layout.page_size(), margin=0, resolution=resolution)
         page.render_map(m, filename)
 
         page.finish()
