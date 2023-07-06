@@ -572,8 +572,7 @@ class CrossroadSchematization:
         ds.SetProjection(wkt)
 
 
-
-    def toTif(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1):
+    def create_style_tmp_directory(self, resolution, scale, log_files):
         # first export to shapefiles in a temporary directory
         dirName = tempfile.mkdtemp()
         if log_files:
@@ -591,6 +590,15 @@ class CrossroadSchematization:
                 shutil.copy(os.path.dirname(__file__) + "/resources/" + str(scale) + "/" + f, dirName + "/")
         else:
             print("not supported DPI")
+            return ""
+        
+        return dirName
+
+
+    def toTif(self, filename, log_files = False, resolution = 300, scale = 400, layout=Layout.A5_portrait, margin=1):
+        # first export to shapefiles in a temporary directory
+        dirName = self.create_style_tmp_directory(resolution, scale, log_files)
+        if dirName == "":
             return
 
         # finally render the image

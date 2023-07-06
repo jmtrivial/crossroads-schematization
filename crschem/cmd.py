@@ -52,7 +52,7 @@ def get_crossroad_schematization_command():
     group_output.add_argument('-o', '--output', help='output file (supported format: geojson, pdf, tif, shp)', type=FileOpener('w'))
     group_output.add_argument('--scale', help='Scale of the map. Default: 400 (for 1:400)', type=int, default=400, choices=[400, 500])
     group_output.add_argument('--dpi', help='dpi for tif export', type=int, choices=[96, 300], default=300)
-    group_output.add_argument('--layout', help='Map layout.', type=lambda s: cs.CrossroadSchematization.Layout[s], choices=list(cs.CrossroadSchematization.Layout))
+    group_output.add_argument('--layout', help='Map layout.', type=lambda s: cs.CrossroadSchematization.Layout[s], choices=list(cs.CrossroadSchematization.Layout), default = cs.CrossroadSchematization.Layout.A5_landscape)
     group_output.add_argument('--margin', help='Margin in cm. Default: 1.0cm', type=float, default=1)
 
     group_preview = parser.add_argument_group("Preview options", "Parameters used by the preview display")
