@@ -1,4 +1,5 @@
-from shapely.geometry import Point, LineString, MultiLineString, LinearRing, Polygon
+from shapely.geometry import Point, LineString, MultiLineString, LinearRing, Polygon, box
+from shapely import affinity
 import osmnx
 import os
 import networkx
@@ -546,6 +547,14 @@ class CrossroadSchematization:
         d = {'type': ['inner_region'], 'geometry': [self.inner_region]}
         return geopandas.GeoDataFrame(d, crs=2154)
 
+    def toGDFOuterRegion(self):
+        bbox = self.inner_region.bounds
+        area = affinity.scale(box(*bbox), 1.1, 1.1)
+        outer = area.difference(self.inner_region)
+
+        d = {'type': ['outer_region'], 'geometry': [outer]}
+        return geopandas.GeoDataFrame(d, crs=2154)
+
 
     def toGeojson(self, filename, only_reachable_islands = False, crs = "EPSG:4326"):
         df = pandas.concat([self.toGDFInnerRegion().to_crs(crs),
@@ -561,6 +570,7 @@ class CrossroadSchematization:
         filename, file_extension = os.path.splitext(filename)
 
         self.toGDFInnerRegion().to_crs(crs).to_file(filename + "-inner" + file_extension) # region
+        self.toGDFOuterRegion().to_crs(crs).to_file(filename + "-outer" + file_extension) # region
         c.TurningSidewalk.toGDFSidewalks(self.merged_sidewalks).to_crs(crs).to_file(filename + "-sidewalks" + file_extension) # lines
         c.Branch.toGDFBranches(self.branches).to_crs(crs).to_file(filename + "-branches" + file_extension) # lines
         

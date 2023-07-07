@@ -9,7 +9,11 @@
     </Rule>
   </Style>
 
-
+  <Style name="outer">
+    <Rule>
+      <PolygonSymbolizer fill="#fff" />
+    </Rule>
+  </Style>
 
   <Style name="sidewalks-space">
     <Rule>
@@ -88,6 +92,14 @@
     <StyleName>crossings</StyleName>
     <Datasource>
       <Parameter name="file">crossroad-crossings.shp</Parameter>
+      <Parameter name="type">shape</Parameter>
+    </Datasource>
+  </Layer>
+
+  <Layer>
+    <StyleName>outer</StyleName>
+    <Datasource>
+      <Parameter name="file">crossroad-outer.shp</Parameter>
       <Parameter name="type">shape</Parameter>
     </Datasource>
   </Layer>
