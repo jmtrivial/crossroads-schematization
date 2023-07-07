@@ -498,10 +498,12 @@ class TurningSidewalk:
 
 class TrafficIsland:
 
-    def __init__(self, edgelist, osm_input, cr_input):
+    def __init__(self, island_id, edgelist, osm_input, cr_input, crossings):
+        self.island_id = island_id
         self.edgelist = [list(map(int, x.split(";"))) for x in edgelist]
         self.osm_input = osm_input
         self.cr_input = cr_input
+        self.crossings = crossings
 
         self.build_polygon()
 
@@ -560,17 +562,19 @@ class TrafficIsland:
 
 
     def compute_center_and_radius(self, crossings):
-        local_crossings = [self.osm_input.nodes[c] for c in crossings if c in self.polygon]
+        local_crossings = [self.crossings[c] for c in crossings if c in self.polygon]
         if len(local_crossings) != 0:
-            l = local_crossings
+            # use extremity of the crossing
+            l = [c.get_location_on_island(self.island_id) for c in local_crossings]
             self.is_reachable = True
         else:
             l = [self.osm_input.nodes[x] for x in self.polygon]
+            l = [(c["x"], c["y"]) for c in l]
             self.is_reachable = False
-        xs = [c["x"] for c in l]
-        ys = [c["y"] for c in l]
+        xs = [c[0] for c in l]
+        ys = [c[1] for c in l]
         self.center = (sum(xs) / len(xs), sum(ys) / len(ys))
-        ds = [osmnx.distance.euclidean_dist_vec(c["x"], c["y"], self.center[0], self.center[1]) for c in l]
+        ds = [osmnx.distance.euclidean_dist_vec(c[0], c[1], self.center[0], self.center[1]) for c in l]
         self.radius = sum(ds) / len(ds)
 
 
@@ -1067,21 +1071,29 @@ class Crossing:
         return (x, y)
 
     
-    def is_first_side(self, id_sidewalk):
-        if self.sides[0][1] != "sidewalk":
+    def is_first_side(self, id, nature):
+        if self.sides[0][1] != nature:
             return False
         else:
-            return str(self.sides[0][0]) == str(id_sidewalk)
+            return str(self.sides[0][0]) == str(id)
 
 
     def get_location_on_sidewalk(self, id_sidewalk):
+        return self.get_location_on_side(id_sidewalk, "sidewalk")
+
+
+    def get_location_on_island(self, id_island):
+        return self.get_location_on_side(id_island, "island")
+
+
+    def get_location_on_side(self, id, nature):
         x = self.osm_input.nodes[self.node_id]["x"]
         y = self.osm_input.nodes[self.node_id]["y"]
 
         nb = self.nb_lanes_backward + self.nb_lanes_forward
         length = nb * self.lane_width / 2 + self.distance_kerb_footway
 
-        bearing = self.footways_orientations[0 if self.is_first_side(id_sidewalk) else 1]
+        bearing = self.footways_orientations[0 if self.is_first_side(id, nature) else 1]
 
         shiftx = -math.cos(bearing) * length
         shifty = math.sin(bearing) * length

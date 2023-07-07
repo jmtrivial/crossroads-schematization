@@ -215,6 +215,7 @@ class CrossroadSchematization:
         # filtering crossings
         print("Filtering crossings")
         self.filter_crossings()
+
         # build traffic islands
         print("Building traffic islands")
         self.build_traffic_islands()
@@ -396,7 +397,7 @@ class CrossroadSchematization:
         # then build traffic islands
         self.traffic_islands = []
         for eid in traffic_islands_edges:
-            self.traffic_islands.append(c.TrafficIsland(traffic_islands_edges[eid], self.osm_input, self.cr_input))
+            self.traffic_islands.append(c.TrafficIsland(eid, traffic_islands_edges[eid], self.osm_input, self.cr_input, self.crossings))
 
 
     def getMapnikMap(self, dirName, resolution, scale, layout, marginCM):
