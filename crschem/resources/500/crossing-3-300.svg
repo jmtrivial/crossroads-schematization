@@ -4,9 +4,9 @@
 <svg
    version="1.1"
    id="svg2"
-   width="159.28708"
-   height="138.04881"
-   viewBox="0 0 159.28708 138.04881"
+   width="129.78462"
+   height="112.48001"
+   viewBox="0 0 129.78462 112.48001"
    sodipodi:docname="crossing-3-300.svg"
    inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
@@ -25,9 +25,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
-     inkscape:zoom="4.1277673"
-     inkscape:cx="61.413345"
-     inkscape:cy="102.23444"
+     inkscape:zoom="1.4593861"
+     inkscape:cx="-1.3704392"
+     inkscape:cy="13.019173"
      inkscape:window-width="1920"
      inkscape:window-height="1019"
      inkscape:window-x="0"
@@ -37,28 +37,29 @@
   <g
      inkscape:groupmode="layer"
      inkscape:label="Image"
-     id="g8">
+     id="g8"
+     transform="translate(0,-25.568804)">
     <rect
-       style="fill:#ffffff;stroke-width:0.802707;stroke-linecap:round;stroke-linejoin:bevel"
+       style="fill:#ffffff;stroke-width:0.654033;stroke-linecap:round;stroke-linejoin:bevel"
        id="rect287"
-       width="159.28708"
-       height="138.04881"
+       width="129.78462"
+       height="112.48001"
        x="0"
-       y="0"
-       ry="7.7998085" />
+       y="25.568804"
+       ry="6.3551617" />
     <rect
        style="fill:#000000;stroke-width:0.802707;stroke-linecap:round;stroke-linejoin:bevel"
-       id="rect602"
-       width="12.596164"
-       height="97.504036"
-       x="27.477726"
-       y="21.51194" />
+       id="rect602-3-7-5"
+       width="12.596165"
+       height="79.444756"
+       x="96.170692"
+       y="43.096397" />
     <rect
        style="fill:#000000;stroke-width:0.802707;stroke-linecap:round;stroke-linejoin:bevel"
-       id="rect602-3"
-       width="12.596164"
-       height="97.504036"
-       x="118.03208"
-       y="21.51194" />
+       id="rect602-3-7"
+       width="12.596165"
+       height="79.444756"
+       x="20.055412"
+       y="43.096397" />
   </g>
 </svg>
