@@ -108,6 +108,7 @@ class CrossroadSchematization:
 
     def build(latitude, longitude,
               C0, C1, C2,
+              similar_direction_angle = 60,
               ignore_crossings_for_sidewalks = False,
               use_fixed_width_on_branches = False,
               turn_shape = TurningSidewalk.TurnShape.ADJUSTED_ANGLE,
@@ -140,7 +141,7 @@ class CrossroadSchematization:
         undirected_G = ox.utils_graph.get_undirected(G)
         
         # segment it using topology and semantic
-        seg = cseg.Segmentation(undirected_G, C0 = C0, C1 = C1, C2 = C2, max_cycle_elements = 10)
+        seg = cseg.Segmentation(undirected_G, C0 = C0, C1 = C1, C2 = C2, max_cycle_elements = 10, similar_direction_angle = similar_direction_angle)
         seg.process()
 
         tmp1 = tempfile.NamedTemporaryFile(mode='w', delete=False)

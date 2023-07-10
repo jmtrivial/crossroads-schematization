@@ -39,7 +39,7 @@ group_preprocess = parser.add_argument_group('Preprocessing', "Parameters of the
 group_preprocess.add_argument('--c0', help='Initial intersection size (distance between boundaries and middle of the initial intersection). Default: 2.', type=float, default=2)
 group_preprocess.add_argument('--c1', help='Intersection size (aggregation by adjacency). Default: 2.', type=float, default=2)
 group_preprocess.add_argument('--c2', help='Intersection size (aggregation by cycle detection). Default: 4.', type=float, default=4)
-
+group_preprocess.add_argument('--similar-direction-angle', help='Maximum angle for lanes to be considered inside the same branch (in degree). Default: 60.', type=int, default=60)
 
 group_process = parser.add_argument_group("Processing", "Parameters of the processing")
 group_process.add_argument('--keep-doubled-crossings', help='In case of double crossings (current bad configuration in OSM data with traffic lights), keep both nodes.', action='store_true')
@@ -78,6 +78,7 @@ try:
         longitude = args.by_coordinates[1]
         crschem = cs.CrossroadSchematization.build(latitude, longitude,
                                                    args.c0, args.c1, args.c2,
+                                                   similar_direction_angle = args.similar_direction_angle,
                                                    verbose = True,
                                                    ignore_crossings_for_sidewalks = args.ignore_crossings_for_sidewalks,
                                                    use_fixed_width_on_branches = args.use_fixed_width_on_branches,
