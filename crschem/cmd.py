@@ -5,6 +5,7 @@ import geopandas
 import sys
 
 import crschem.crossroad_schematization as cs
+from crschem.model.turning_sidewalk import TurningSidewalk
 
 def get_crossroad_schematization_command():
 
@@ -44,7 +45,7 @@ def get_crossroad_schematization_command():
     group_process.add_argument('--keep-doubled-crossings', help='In case of double crossings (current bad configuration in OSM data with traffic lights), keep both nodes.', action='store_true')
     group_process.add_argument('--ignore-crossings-for-sidewalks', help='Do not use crossings to shape the sidewalks', action='store_true')
     group_process.add_argument('--use-fixed-width-on-branches', help='Use a fixed width on each branch (do not evaluate the width adjustment)', action='store_true')
-    group_process.add_argument('--turn-shape', help='Turn shape.', type=lambda s: c.TurningSidewalk.TurnShape[s], choices=list(c.TurningSidewalk.TurnShape))
+    group_process.add_argument('--turn-shape', help='Turn shape.', type=lambda s: TurningSidewalk.TurnShape[s], choices=list(TurningSidewalk.TurnShape))
 
     group_output = parser.add_argument_group("Output", "Display, log or save results")
     group_output.add_argument('-l', '--log-files', help='keep intermediate files and give their name in output', action='store_true')

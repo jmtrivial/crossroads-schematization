@@ -7,7 +7,7 @@ import geopandas
 import sys
 
 import crschem.crossroad_schematization as cs
-from crschem.turning_sidewalk import TurningSidewalk
+from crschem.model.turning_sidewalk import TurningSidewalk
 
 # a trick to avoid the creation of files given as parameters
 class FileOpener(argparse.FileType):

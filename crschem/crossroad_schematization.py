@@ -23,12 +23,12 @@ from enum import Enum
 from . import utils as u
 from . import processing as p
 
-from .branch import Branch
-from .traffic_island import TrafficIsland
-from .turning_sidewalk import TurningSidewalk
-from .simple_way import SimpleWay
-from .straight_way import StraightWay
-from .crossing import Crossing
+from .model.branch import Branch
+from .model.traffic_island import TrafficIsland
+from .model.turning_sidewalk import TurningSidewalk
+from .model.simple_way import SimpleWay
+from .model.straight_way import StraightWay
+from .model.crossing import Crossing
 
 class CrossroadSchematization:
 
