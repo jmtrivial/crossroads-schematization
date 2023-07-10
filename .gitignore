@@ -2,4 +2,5 @@ build
 cache
 dist
 crschem/__pycache__/
+crschem/model/__pycache__/
 crossroads_schematization.egg-info/
