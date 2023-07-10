@@ -22,9 +22,13 @@ from enum import Enum
 
 from . import utils as u
 from . import processing as p
-from . import crossroad as c
 
-
+from .branch import Branch
+from .traffic_island import TrafficIsland
+from .turning_sidewalk import TurningSidewalk
+from .simple_way import SimpleWay
+from .straight_way import StraightWay
+from .crossing import Crossing
 
 class CrossroadSchematization:
 
@@ -80,7 +84,7 @@ class CrossroadSchematization:
                  osm_unoriented = None,
                  ignore_crossings_for_sidewalks = False,
                  use_fixed_width_on_branches = False,
-                 turn_shape = c.TurningSidewalk.TurnShape.ADJUSTED_ANGLE,
+                 turn_shape = TurningSidewalk.TurnShape.ADJUSTED_ANGLE,
                  remove_doubled_crossings = True,
                  osm_buffer_size_meters = 200, 
                  distance_kerb_footway = 0.5,
@@ -106,7 +110,7 @@ class CrossroadSchematization:
               C0, C1, C2,
               ignore_crossings_for_sidewalks = False,
               use_fixed_width_on_branches = False,
-              turn_shape = c.TurningSidewalk.TurnShape.ADJUSTED_ANGLE,
+              turn_shape = TurningSidewalk.TurnShape.ADJUSTED_ANGLE,
               remove_doubled_crossings = True,
               verbose = True,
               ignore_cache = False,
@@ -200,7 +204,7 @@ class CrossroadSchematization:
 
         # add pedestrian crossings
         print("Creating crossings")
-        self.crossings = c.Crossing.create_crossings(self.osm_input, self.cr_input, 
+        self.crossings = Crossing.create_crossings(self.osm_input, self.cr_input, 
                                                      self.osm_input_oriented,
                                                      self.distance_kerb_footway,
                                                      self.remove_doubled_crossings)
@@ -299,8 +303,8 @@ class CrossroadSchematization:
                     id = e["id"]
                     bname = e["name"]
                     if not id in self.branches:
-                        self.branches[id] = c.Branch(bname, id, self.osm_input, self.cr_input, self.distance_kerb_footway)
-                    self.branches[id].add_way(c.SimpleWay(n1, n2, e, osm_n1 == n1))
+                        self.branches[id] = Branch(bname, id, self.osm_input, self.cr_input, self.distance_kerb_footway)
+                    self.branches[id].add_way(SimpleWay(n1, n2, e, osm_n1 == n1))
 
 
     def build_sidewalks(self):
@@ -345,7 +349,7 @@ class CrossroadSchematization:
         # integrate them to the final shape
 
         for sid in original_sidewalks_ids:
-            self.merged_sidewalks.append(c.TurningSidewalk(sid,
+            self.merged_sidewalks.append(TurningSidewalk(sid,
                                                             self.get_sidewalks_by_id(sid), 
                                                             self.get_crossings_by_sidewalks_ids(sid),
                                                             self.osm_input, self.cr_input, self.distance_kerb_footway,
@@ -398,7 +402,7 @@ class CrossroadSchematization:
         # then build traffic islands
         self.traffic_islands = []
         for eid in traffic_islands_edges:
-            self.traffic_islands.append(c.TrafficIsland(eid, traffic_islands_edges[eid], self.osm_input, self.cr_input, self.crossings))
+            self.traffic_islands.append(TrafficIsland(eid, traffic_islands_edges[eid], self.osm_input, self.cr_input, self.crossings))
 
 
     def getMapnikMap(self, dirName, resolution, scale, layout, marginCM):
@@ -558,10 +562,10 @@ class CrossroadSchematization:
 
     def toGeojson(self, filename, only_reachable_islands = False, crs = "EPSG:4326"):
         df = pandas.concat([self.toGDFInnerRegion().to_crs(crs),
-                            c.TurningSidewalk.toGDFSidewalks(self.merged_sidewalks).to_crs(crs),
-                            c.Branch.toGDFBranches(self.branches).to_crs(crs),
-                            c.TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands).to_crs(crs),
-                            c.Crossing.toGDFCrossings(self.crossings).to_crs(crs)])
+                            TurningSidewalk.toGDFSidewalks(self.merged_sidewalks).to_crs(crs),
+                            Branch.toGDFBranches(self.branches).to_crs(crs),
+                            TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands).to_crs(crs),
+                            Crossing.toGDFCrossings(self.crossings).to_crs(crs)])
         
         df.to_file(filename, driver='GeoJSON')
 
@@ -571,16 +575,16 @@ class CrossroadSchematization:
 
         self.toGDFInnerRegion().to_crs(crs).to_file(filename + "-inner" + file_extension) # region
         self.toGDFOuterRegion().to_crs(crs).to_file(filename + "-outer" + file_extension) # region
-        c.TurningSidewalk.toGDFSidewalks(self.merged_sidewalks).to_crs(crs).to_file(filename + "-sidewalks" + file_extension) # lines
-        c.Branch.toGDFBranches(self.branches).to_crs(crs).to_file(filename + "-branches" + file_extension) # lines
+        TurningSidewalk.toGDFSidewalks(self.merged_sidewalks).to_crs(crs).to_file(filename + "-sidewalks" + file_extension) # lines
+        Branch.toGDFBranches(self.branches).to_crs(crs).to_file(filename + "-branches" + file_extension) # lines
         
         # islands can be points and lines
-        islands = c.TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands).to_crs(crs)
+        islands = TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands).to_crs(crs)
         islands[islands.geometry.type == 'LineString'].to_file(filename + "-islands-lines" + file_extension)
         islands[islands.geometry.type == 'Point'].to_file(filename + "-islands-points" + file_extension)
 
         # points
-        c.Crossing.toGDFCrossings(self.crossings).to_crs(crs).to_file(filename + "-crossings" + file_extension)
+        Crossing.toGDFCrossings(self.crossings).to_crs(crs).to_file(filename + "-crossings" + file_extension)
 
 
     def show(self, 
