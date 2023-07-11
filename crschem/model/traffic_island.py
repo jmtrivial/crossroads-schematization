@@ -1,8 +1,9 @@
-from shapely.geometry import Point, LineString
+from shapely.geometry import Point, LineString, Polygon, LinearRing
 import numpy as np
 import shapely.ops
 from numpy import linalg
 import geopandas
+from enum import Enum
 
 import copy
 import osmnx
@@ -13,16 +14,25 @@ from .. import processing as p
 
 class TrafficIsland:
 
-    def __init__(self, island_id, edgelist, osm_input, cr_input, crossings):
+    class Geometry(Enum):
+        point = 0
+        lines = 1
+        polygon = 2
+
+    def __init__(self, island_id, edgelist, osm_input, cr_input, crossings, distance_kerb_footway = 0.5, threshold_small_island = 30):
         self.island_id = island_id
         self.edgelist = [list(map(int, x.split(";"))) for x in edgelist]
         self.osm_input = osm_input
         self.cr_input = cr_input
         self.crossings = crossings
 
-        self.build_polygon()
-
         self.significant_ratio = 2
+        self.threshold_small_island = threshold_small_island
+        self.distance_kerb_footway = distance_kerb_footway
+
+        self.build_polygon()
+        self.build_inner_polygon()
+
 
     def build_polygon(self):
 
@@ -58,11 +68,14 @@ class TrafficIsland:
 
         # if the polygon is not closed, a part is missing in the original data (but available in OSM)
         if self.polygon[0] != self.polygon[-1]:
-            self.extends_polygon_with_osm()
-            self.polygon = self.polygon[::-1]
-            self.extends_polygon_with_osm()
-            self.polygon = self.polygon[::-1]
+            self.polygon = p.Expander.close_polygon(self.osm_input, self.polygon)
 
+    def build_inner_polygon(self):
+        ring = Polygon(self.get_linearring())
+
+        buffered = u.Utils.get_buffered_by_osm(self.polygon, self.osm_input, self.distance_kerb_footway)
+
+        self.inner_polygon = ring.buffer(0).difference(buffered)
 
     def extends_polygon_with_osm(self):
         next = p.Expander.find_next_edge_simple(self.osm_input, self.polygon[-2], self.polygon[-1])
@@ -210,7 +223,6 @@ class TrafficIsland:
     def get_edge_extremity_from_section(self, section, inner_region):
         # build left and right polylines
         polylines = self.build_polylines_from_section(section)
-        # LineString([Point(self.osm_input.nodes[n]["x"], self.osm_input.nodes[n]["y"]) for n in section])  
 
         # compute a straight island
         other_in_edge = self.get_straight_island_direction(polylines)
@@ -227,7 +239,7 @@ class TrafficIsland:
 
 
         # build a buffered version of the initial polyline, and compute the intersection.
-        buffered = u.Utils.get_buffered_by_osm(section, self.osm_input)
+        buffered = u.Utils.get_buffered_by_osm(section, self.osm_input, self.distance_kerb_footway)
         if buffered.is_empty:
             print("Note: Buffered section is empty")
             return None
@@ -263,39 +275,46 @@ class TrafficIsland:
 
         return False
 
-    def compute_edges(self, crossings, inner_region):
-        border_sections = self.get_border_sections(crossings)
+    
+    def is_linear_island(self, border_sections):
+        return len(border_sections) <= 2 or self.is_branch_medial_axis()
 
-        # only compute edges if it's a linear island
-        if len(border_sections) <= 2 or self.is_branch_medial_axis():
-            sections = [s for s in border_sections if self.max_distance_to_center(s) > self.radius * self.significant_ratio]
-            self.extremities = [self.get_edge_extremity_from_section(s, inner_region) for s in sections]
-            self.extremities = [e for e in self.extremities if not e is None]
-        else:
-            self.extremities = []
-        
+
+    def is_small_island(self):
+        return self.inner_polygon.area < self.threshold_small_island
 
     def compute_generalization(self, crossings, inner_region):
 
         # compute crossing's center
         self.compute_center_and_radius(crossings)
 
-        # TODO: if it's a a large region, build a polygon (./example-pdf.sh 13)
 
         if self.is_reachable:
-            #compute supplementary edges if some of points of the polygons are far from the center
-            self.compute_edges(crossings, inner_region)
+            
+
+            if self.is_small_island():
+                self.generalization = TrafficIsland.Geometry.point
+            else:
+                border_sections = self.get_border_sections(crossings)
+                if self.is_linear_island(border_sections):
+                    sections = [s for s in border_sections if self.max_distance_to_center(s) > self.radius * self.significant_ratio]
+                    self.extremities = [self.get_edge_extremity_from_section(s, inner_region) for s in sections]
+                    self.extremities = [e for e in self.extremities if not e is None]
+                    self.generalization = TrafficIsland.Geometry.lines
+                else:
+                    self.generalization = TrafficIsland.Geometry.polygon
         else:
-            self.extremities = []
+            self.generalization = TrafficIsland.Geometry.point
 
 
     def getGeometry(self):
         # TODO: alternative geometry in case of a polygon (cf compute_generalization)
-        if len(self.extremities) == 0:
+        if self.generalization == TrafficIsland.Geometry.point:
             return [Point(self.center)]
-        else:
+        elif self.generalization == TrafficIsland.Geometry.lines:
             return [LineString([self.center, e]) for e in self.extremities]
-
+        else:
+            return [Polygon(self.inner_polygon)]
 
     def toGDFTrafficIslands(traffic_islands, only_reachable = True):
         d = {'type': [], 'osm_id': [], 'geometry': []}

@@ -56,7 +56,6 @@
   </Style>
 
 
-
   <Layer>
     <StyleName>inner</StyleName>
     <Datasource>
@@ -87,6 +86,14 @@
     </Datasource>
   </Layer>
 
+  <Layer>
+    <StyleName>sidewalks-space</StyleName>
+    <Datasource>
+      <Parameter name="file">crossroad-islands-polygons.shp</Parameter>
+      <Parameter name="type">shape</Parameter>
+    </Datasource>
+  </Layer>
+
 
     <Layer>
     <StyleName>crossings</StyleName>
@@ -105,12 +112,29 @@
   </Layer>
 
   <Layer>
+    <StyleName>outer</StyleName>
+    <Datasource>
+      <Parameter name="file">crossroad-islands-polygons.shp</Parameter>
+      <Parameter name="type">shape</Parameter>
+    </Datasource>
+  </Layer>
+
+  <Layer>
     <StyleName>sidewalks</StyleName>
     <Datasource>
       <Parameter name="file">crossroad-sidewalks.shp</Parameter>
       <Parameter name="type">shape</Parameter>
     </Datasource>
   </Layer>
+
+    <Layer>
+    <StyleName>sidewalks</StyleName>
+    <Datasource>
+      <Parameter name="file">crossroad-islands-polygons.shp</Parameter>
+      <Parameter name="type">shape</Parameter>
+    </Datasource>
+  </Layer>
+
   <Layer>
     <StyleName>islands</StyleName>
     <Datasource>

@@ -159,3 +159,51 @@ class Expander:
         else:
             # if found, we propagate the extension
             return [n1] + Expander.extend_branch(G, n2, next, left_first)
+
+
+
+    def find_next_edge_on_polygon(G, n1, n2, left_first):
+        other = [n for n in G[n2] if n != n1 and G[n2][n][0]["type"] == "unknown"]
+        if len(other) == 0:
+            return None
+        elif len(other) == 1:
+            return other[0]
+        else:
+            sorted_other = sorted(other, key=lambda n: u.Utils.turn_angle(G, n2, n1, n), reverse=not left_first)
+            return sorted_other[0]
+
+
+    def extend_polygon(G, path, left_first):
+
+        next = Expander.find_next_edge_on_polygon(G, path[-2], path[-1], left_first)
+        # if not found, we reach the end of a path
+        if next is None:
+            return path
+        else:
+            np = path + [next]
+            if next in path:
+                return np
+            else:
+                return Expander.extend_polygon(G, np, left_first)
+
+    def close_polygon(G, path):
+        p1 = Expander.extend_polygon(G, path, True)
+        if p1[0] == p1[-1]:
+            return p1
+        else:
+            p2 = Expander.extend_polygon(G, path, False)
+            if p2[0] == p2[-1]:
+                return p2
+            else:
+                # when a part of the polygon is outside of the map, choose the best option between one side 
+                # and the other
+                p1 = p1[::-1]
+                p1 = Expander.extend_polygon(G, p1, False)
+                d1 = u.Utils.edge_length([G.nodes[p1[0]]["x"], G.nodes[p1[0]]["y"]], [G.nodes[p1[-1]]["x"], G.nodes[p1[-1]]["y"]])
+                p2 = p2[::-1]
+                p2 = Expander.extend_polygon(G, p2, False)
+                d2 = u.Utils.edge_length([G.nodes[p2[0]]["x"], G.nodes[p2[0]]["y"]], [G.nodes[p2[-1]]["x"], G.nodes[p2[-1]]["y"]])
+                if d1 < d2:
+                    return p1
+                else:
+                    return p2

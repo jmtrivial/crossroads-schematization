@@ -35,7 +35,7 @@ class TurningSidewalk:
             self.curvPos = curvPos
 
     class FlexiblePoint(Point):
-        def __init__(self, coord, curvPos = None):
+        def __init__(self, coord = None, curvPos = None):
             super().__init__(coord, curvPos)
             self.flexible = True
 
@@ -45,6 +45,7 @@ class TurningSidewalk:
             self.flexible = False
 
     class CrossingPoint(FixedPoint):
+
         pass
 
         
@@ -94,12 +95,8 @@ class TurningSidewalk:
                     # if the intersection point is within the second edge
                     self.way[2] = TurningSidewalk.FixedPoint(self.intersection)
                 else:
-                    if self.turn_shape == TurningSidewalk.TurnShape.STRAIGHT_ANGLE:
-                        # we add a fixed point
-                        self.way.insert(2, TurningSidewalk.FixedPoint(self.intersection))
-                    else:
-                        # we add a flexible point
-                        self.way.insert(2, TurningSidewalk.FlexiblePoint(self.intersection))
+                    # we add a flexible point
+                    self.way.insert(2, TurningSidewalk.FlexiblePoint(self.intersection))
 
 
     def is_sidewalk_edge(self, node1, node2):
@@ -205,6 +202,7 @@ class TurningSidewalk:
                     break
             
             if cid != 0 and abs(curvPos - self.way[cid - 1].curvPos) < self.epsilon_for_merging:
+
                 # replace the existing node by the crossing
                 self.way[cid - 1] = p
             elif cid < len(self.way) and abs(curvPos - self.way[cid].curvPos) < self.epsilon_for_merging:
@@ -215,25 +213,73 @@ class TurningSidewalk:
                 self.way.insert(cid, p)
 
 
+        # finally add flexible points around each crossing
+        new_way = [self.way[0], self.way[1]]
+        min_distance = 10
+        for pred, point, next in zip(self.way[1:], self.way[2:], self.way[3:-1]):
+            if isinstance(point, TurningSidewalk.CrossingPoint) and not pred.flexible and not new_way[-1].flexible and u.Utils.edge_length(pred.coord, point.coord) > min_distance:
+                new_way.append(TurningSidewalk.FlexiblePoint())
+            new_way.append(point)
+            if isinstance(point, TurningSidewalk.CrossingPoint) and not next.flexible and not new_way[-1].flexible and u.Utils.edge_length(point.coord, next.coord) > min_distance:
+                new_way.append(TurningSidewalk.FlexiblePoint())
+        new_way.append(self.way[-2])
+        new_way.append(self.way[-1])
+        self.way = new_way
+                
+
+
+    def compute_straight_angle(self, id):
+        idpred = id - 2
+        while self.way[idpred].flexible:
+            idpred -= 1
+
+        idnext = id + 2
+        while self.way[idnext].flexible:
+            idnext += 1
+
+        e1 = u.Utils.extends_edge((self.way[idpred].coord, self.way[id - 1].coord))
+        e2 = u.Utils.extends_edge((self.way[id + 1].coord, self.way[idnext].coord))
+        if e1.intersects(e2):
+            return e1.intersection(e2).coords[0]
+        else:
+            return None
+        
+
     def adjust_flexible_points(self):
         buffered_osm = u.Utils.get_buffered_osm(self.osm_input, self.distance_kerb_footway)
 
-        for pred, point, next in zip(self.way, self.way[1:], self.way[2:]):
+        for id_point in range(1, len(self.way) - 1):
+            pred = self.way[id_point - 1]
+            point = self.way[id_point]
+            next = self.way[id_point + 1]
             if point.flexible:
-                middle_sw = point.coord
-                
                 middle_bevel = Point([(x + y) / 2 for x, y in zip(pred.coord, next.coord)])
-                # first check for basic intersection
-                line = LineString([middle_sw, middle_bevel])
+                middle_extand = self.compute_straight_angle(id_point)
 
-                if buffered_osm.intersects(line):
-                    # build a more complex turn
-                    edge = LineString((middle_bevel, middle_sw))
+                if middle_extand is None:
+                    self.way[id_point].coord = middle_bevel.coords[0]
+                else:
+                    merge_distance = 1
                     
-                    elements = buffered_osm.boundary.intersection(edge)
-                    if not elements.is_empty:
-                        nearest = shapely.ops.nearest_points(middle_bevel, elements)
-                        point.coord = (nearest[1].x, nearest[1].y)
+                    if LineString([pred.coord, next.coord]).distance(Point(middle_extand)) < merge_distance:
+                        self.way[id_point].coord = middle_bevel.coords[0]
+                    else:
+                        self.way[id_point].coord = middle_extand
+
+                        if self.turn_shape != TurningSidewalk.TurnShape.STRAIGHT_ANGLE:
+                            
+                            # first check for basic intersection
+                            edge = u.Utils.extends_edge((middle_extand, middle_bevel.coords[0]), 20)
+                            line = LineString(edge)        
+
+                            if buffered_osm.intersects(line):
+                                # build a more complex turn
+                                
+                                elements = buffered_osm.boundary.intersection(line)
+                                if not elements.is_empty:
+                                    nearest = shapely.ops.nearest_points(middle_bevel, elements)
+                                    self.way[id_point].coord = (nearest[1].x, nearest[1].y)
+                                    self.way[id_point].flexible = False
 
 
     def branch_ids(self):

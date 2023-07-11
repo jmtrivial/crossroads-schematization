@@ -3,6 +3,9 @@ import math
 import numpy as np
 from numpy import linalg
 
+
+from .. import utils as u
+
 class StraightSidewalk:
 
     def __init__(self, edge, straightway, side):
@@ -41,15 +44,7 @@ class StraightSidewalk:
 
 
     def extends(self, length = 200):
-        edgecoords = np.asarray(self.edge.coords)
-        x = [a[0] for a in edgecoords]
-        y = [a[1] for a in edgecoords]
-        center = Point(sum(x) / len(x), sum(y) / len(y))
-        start = edgecoords[0]
-        end = edgecoords[1]
-        v = [center.x - start[0], center.y - start[1]]
-        v = v / linalg.norm(v)
-        return LineString([start - v * length, end + v * length])
+        return u.Utils.extends_edge(self.edge.coords, length)
 
 
     # compute the intersection between the two straight sidewalk lines (considering it as infinite lines)

@@ -403,7 +403,7 @@ class CrossroadSchematization:
         # then build traffic islands
         self.traffic_islands = []
         for eid in traffic_islands_edges:
-            self.traffic_islands.append(TrafficIsland(eid, traffic_islands_edges[eid], self.osm_input, self.cr_input, self.crossings))
+            self.traffic_islands.append(TrafficIsland(eid, traffic_islands_edges[eid], self.osm_input, self.cr_input, self.crossings, self.distance_kerb_footway))
 
 
     def getMapnikMap(self, dirName, resolution, scale, layout, marginCM):
@@ -555,7 +555,7 @@ class CrossroadSchematization:
     def toGDFOuterRegion(self):
         bbox = self.inner_region.bounds
         area = affinity.scale(box(*bbox), 1.1, 1.1)
-        outer = area.difference(self.inner_region)
+        outer = area.difference(self.inner_region.buffer(0))
 
         d = {'type': ['outer_region'], 'geometry': [outer]}
         return geopandas.GeoDataFrame(d, crs=2154)
@@ -579,10 +579,11 @@ class CrossroadSchematization:
         TurningSidewalk.toGDFSidewalks(self.merged_sidewalks).to_crs(crs).to_file(filename + "-sidewalks" + file_extension) # lines
         Branch.toGDFBranches(self.branches).to_crs(crs).to_file(filename + "-branches" + file_extension) # lines
         
-        # islands can be points and lines
+        # islands can be points, lines or polygons
         islands = TrafficIsland.toGDFTrafficIslands(self.traffic_islands, only_reachable_islands).to_crs(crs)
-        islands[islands.geometry.type == 'LineString'].to_file(filename + "-islands-lines" + file_extension)
         islands[islands.geometry.type == 'Point'].to_file(filename + "-islands-points" + file_extension)
+        islands[islands.geometry.type == 'LineString'].to_file(filename + "-islands-lines" + file_extension)
+        islands[islands.geometry.type == 'Polygon'].to_file(filename + "-islands-polygons" + file_extension)
 
         # points
         Crossing.toGDFCrossings(self.crossings).to_crs(crs).to_file(filename + "-crossings" + file_extension)
@@ -651,14 +652,17 @@ class CrossroadSchematization:
         if islands:
             for sw in self.traffic_islands:
                 if sw.is_reachable or not only_reachable_islands:
-                    if len(sw.extremities) == 0:
+                    if sw.generalization == TrafficIsland.Geometry.point:
                         x, y = sw.center
                         plt.plot(x, y, "ok", markersize=12, linewidth=12)
-                    else:
+                    elif sw.generalization == TrafficIsland.Geometry.lines:
                         for e in sw.extremities:
                             x = [sw.center[0], e[0]]
                             y = [sw.center[1], e[1]]
                             plt.plot(x, y, color="black", solid_capstyle='round', markersize=12, linewidth=12)
+                    elif sw.generalization == TrafficIsland.Geometry.polygon:
+                        x, y = sw.inner_polygon.exterior.xy
+                        plt.plot(x, y, color = "black", linewidth=1)
 
                     
 

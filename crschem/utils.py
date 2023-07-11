@@ -250,3 +250,15 @@ class Utils:
     
     def edge_in_osm(n1, n2, osm):
         return n1 in osm and n2 in osm[n1]
+
+    def extends_edge(coords, length = 200):
+        edgecoords = np.asarray(coords)
+        x = [a[0] for a in edgecoords]
+        y = [a[1] for a in edgecoords]
+        center = Point(sum(x) / len(x), sum(y) / len(y))
+        start = edgecoords[0]
+        end = edgecoords[1]
+        v = [center.x - start[0], center.y - start[1]]
+        v = v / linalg.norm(v)
+        return LineString([start - v * length, end + v * length])
+
