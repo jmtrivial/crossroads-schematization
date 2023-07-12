@@ -269,8 +269,8 @@ class TurningSidewalk:
                         if self.turn_shape != TurningSidewalk.TurnShape.STRAIGHT_ANGLE:
                             
                             # first check for basic intersection
-                            edge = u.Utils.extends_edge((middle_extand, middle_bevel.coords[0]), 20)
-                            line = LineString(edge)        
+                            edge = u.Utils.extends_edge((middle_extand, middle_bevel.coords[0]), 0, 3)
+                            line = LineString(edge)
 
                             if buffered_osm.intersects(line):
                                 # build a more complex turn
