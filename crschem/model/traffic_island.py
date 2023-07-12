@@ -304,7 +304,10 @@ class TrafficIsland:
                 else:
                     self.generalization = TrafficIsland.Geometry.polygon
         else:
-            self.generalization = TrafficIsland.Geometry.point
+            if self.is_small_island():
+                self.generalization = TrafficIsland.Geometry.point
+            else:
+                self.generalization = TrafficIsland.Geometry.polygon
 
 
     def getGeometry(self):
