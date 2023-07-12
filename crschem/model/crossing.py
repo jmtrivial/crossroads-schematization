@@ -40,7 +40,33 @@ class Crossing:
 
         self.compute_crossing_profile()
 
-        # TODO: adjust the lane_width according to the angle
+        self.adjust_lane_width_by_bearing()
+
+
+
+    def compute_road_orientation_from_side(self, ways):
+        vectors = self.build_vectors(ways)
+        orientations = [math.atan2(-x[1], x[0]) for x in vectors]
+
+        # ways has been sorted before, thus we can use their order and use
+        # only first and last
+        return u.Utils.angle_mean(orientations[0], orientations[-1])
+
+
+    def compute_road_orientation(self):
+        b1 = self.compute_road_orientation_from_side(self.ways_side1)
+        b2 = self.compute_road_orientation_from_side(self.ways_side2)
+
+        # compute mean
+        self.road_bearing = u.Utils.angle_mean(b1, math.pi + b2)
+
+    def adjust_lane_width_by_bearing(self):
+        # compute road_bearing
+        self.compute_road_orientation()
+
+        # adjust lane_width by combining road bearing and crossing bearing
+        self.lane_width = abs(self.lane_width / math.sin(self.bearing - self.road_bearing))
+
 
     def get_adjacent_border_from_way(self, tags, side):
         sidewalk_key = side + "_sidewalk"
