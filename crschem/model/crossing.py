@@ -262,7 +262,8 @@ class Crossing:
         # check for all nodes near to the given node
         for n in osm_input.nodes:
             if n != node and Crossing.is_crossing(n, cr_input):
-                if u.Utils.edge_length(osm_input.nodes[n], osm_input.nodes[node]) < radius:
+                distance = u.Utils.edge_length(osm_input.nodes[n], osm_input.nodes[node])
+                if distance < radius or (n in osm_input[node] and distance < 2 * radius):
                     return True
 
         return False
