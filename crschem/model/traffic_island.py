@@ -1,4 +1,4 @@
-from shapely.geometry import Point, LineString, Polygon, LinearRing
+from shapely.geometry import Point, LineString, Polygon, LinearRing, MultiPolygon
 import numpy as np
 import shapely.ops
 from numpy import linalg
@@ -275,8 +275,28 @@ class TrafficIsland:
         return len(border_sections) <= 2 or self.is_branch_medial_axis()
 
 
+    def is_long_island(self):
+        # maximum distance for a point to be considered close to the middle 
+        max_distance = math.sqrt(self.threshold_small_island) * self.significant_ratio
+
+        if isinstance(self.inner_polygon, LinearRing):
+            polypoints = self.inner_polygon.coords
+        elif isinstance(self.inner_polygon, Polygon):
+            polypoints = self.inner_polygon.exterior.coords
+        elif isinstance(self.inner_polygon, MultiPolygon):
+            polypoints = sum([list(p.exterior.coords) for p in list(self.inner_polygon.geoms)], [])
+        else:
+            polypoints = []
+
+        for p in polypoints:
+            if u.Utils.edge_length(self.center, p) > max_distance:
+                return True
+
+        return False
+
+
     def is_small_island(self):
-        return self.inner_polygon.area < self.threshold_small_island
+        return self.inner_polygon.area < self.threshold_small_island and not self.is_long_island()
 
 
     def is_linear_island_wrt_extremities(self):
@@ -291,10 +311,11 @@ class TrafficIsland:
 
         distance = 0.0
 
-        for p in self.inner_polygon.exterior.coords:
-            d = middle.distance(Point(p))
-            if d > distance:
-                distance = d
+        for c in self.crossings:
+            if c in self.polygon:
+                d = middle.distance(Point(self.crossings[c].get_location_on_island(self.island_id)))
+                if d > distance:
+                    distance = d
         
         return distance <= max_distance
 
