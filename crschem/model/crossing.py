@@ -40,6 +40,7 @@ class Crossing:
 
         self.compute_crossing_profile()
 
+        # TODO: adjust the lane_width according to the angle
 
     def get_adjacent_border_from_way(self, tags, side):
         sidewalk_key = side + "_sidewalk"
