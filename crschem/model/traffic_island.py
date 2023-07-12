@@ -4,6 +4,7 @@ import shapely.ops
 from numpy import linalg
 import geopandas
 from enum import Enum
+import math
 
 import copy
 import osmnx
@@ -276,12 +277,33 @@ class TrafficIsland:
         return False
 
     
-    def is_linear_island(self, border_sections):
+    def is_linear_island_candidate(self, border_sections):
         return len(border_sections) <= 2 or self.is_branch_medial_axis()
 
 
     def is_small_island(self):
         return self.inner_polygon.area < self.threshold_small_island
+
+
+    def is_linear_island_wrt_extremities(self):
+        # maximum distance for a point to be considered close to the middle 
+        max_distance = math.sqrt(self.threshold_small_island)
+
+        # compute middle
+        edges = [LineString([self.center, e]) for e in self.extremities]
+        middle = edges[0]
+        for e in edges[1:]:
+            middle = middle.union(e)
+
+        distance = 0.0
+
+        for p in self.inner_polygon.exterior.coords:
+            d = middle.distance(Point(p))
+            if d > distance:
+                distance = d
+        
+        return distance <= max_distance
+
 
     def compute_generalization(self, crossings, inner_region):
 
@@ -296,11 +318,15 @@ class TrafficIsland:
                 self.generalization = TrafficIsland.Geometry.point
             else:
                 border_sections = self.get_border_sections(crossings)
-                if self.is_linear_island(border_sections):
+                if self.is_linear_island_candidate(border_sections):
                     sections = [s for s in border_sections if self.max_distance_to_center(s) > self.radius * self.significant_ratio]
                     self.extremities = [self.get_edge_extremity_from_section(s, inner_region) for s in sections]
                     self.extremities = [e for e in self.extremities if not e is None]
-                    self.generalization = TrafficIsland.Geometry.lines
+
+                    if self.is_linear_island_wrt_extremities():
+                        self.generalization = TrafficIsland.Geometry.lines
+                    else:
+                        self.generalization = TrafficIsland.Geometry.polygon
                 else:
                     self.generalization = TrafficIsland.Geometry.polygon
         else:
