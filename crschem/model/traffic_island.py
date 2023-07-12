@@ -143,12 +143,6 @@ class TrafficIsland:
 
     def max_distance_to_center(self, section):
         sidewalk_section = section
-        #if len(section) == 2:
-        #    sidewalk_section = section
-        #else:
-        #    sidewalk_section = [section[0]] + [j for i, j, k in zip(section, section[1:], section[2:]) if self.is_sidewalk_node(i, j, k)] + [section[-1]]
-        # TODO: revoir ici, peut-être la moyenne des distances
-        # et garder cette valeur pour ensuite choisir une longueur
         return max([osmnx.distance.euclidean_dist_vec(self.osm_input.nodes[c]["x"], 
                                                       self.osm_input.nodes[c]["y"],
                                                       self.center[0], self.center[1]) for c in sidewalk_section])
@@ -337,12 +331,12 @@ class TrafficIsland:
 
 
     def getGeometry(self):
-        # TODO: alternative geometry in case of a polygon (cf compute_generalization)
         if self.generalization == TrafficIsland.Geometry.point:
             return [Point(self.center)]
         elif self.generalization == TrafficIsland.Geometry.lines:
             return [LineString([self.center, e]) for e in self.extremities]
         else:
+            # TODO: simplifier la forme
             return [Polygon(self.inner_polygon)]
 
     def toGDFTrafficIslands(traffic_islands, only_reachable = True):
@@ -351,7 +345,6 @@ class TrafficIsland:
         for t in traffic_islands:
             if t.is_reachable or not only_reachable:
                 geom = t.getGeometry()
-                # TODO: add supplementary attribute to distinguish between a polygon and a more generalized island (cf compute_generalization)
                 for g in geom:
                     d["type"].append("traffic_island")
                     d["osm_id"].append(";".join(map(str, t.polygon)))
