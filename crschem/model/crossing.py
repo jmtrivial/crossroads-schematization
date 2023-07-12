@@ -242,9 +242,12 @@ class Crossing:
         return False
 
     
+    def is_crossing_osm(node, osm_input):
+        return ("highway" in osm_input.nodes[node] and osm_input.nodes[node]["highway"] == "crossing") or ("crossing" in osm_input.nodes[node])
+
     def create_crossings(osm_input, cr_input, osm_input_oriented, distance_kerb_footway, remove_doubled_crossings):
         crossings = dict([(n, Crossing(n, osm_input, cr_input, osm_input_oriented, distance_kerb_footway)) for n in osm_input.nodes if 
-                      osm_input.nodes[n]["type"] == "input" and Crossing.is_crossing(n, cr_input)])
+                      osm_input.nodes[n]["type"] == "input" and Crossing.is_crossing(n, cr_input) and Crossing.is_crossing_osm(n, osm_input)])
 
         if remove_doubled_crossings:
             print("Removing double crossings")
