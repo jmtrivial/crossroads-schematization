@@ -12,7 +12,7 @@ class Utils:
     def is_roadway_edge(osm_edge):
         if not "highway" in osm_edge:
             return False
-        with_cars = ["motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "service", "living_street"]
+        with_cars = ["motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "service", "living_street", "busway"]
         return osm_edge["highway"] in with_cars + [ w + "_link" for w in with_cars]
 
 

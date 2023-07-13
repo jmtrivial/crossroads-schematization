@@ -129,7 +129,7 @@ class CrossroadSchematization:
             print("Loading data from OpenStreetMap")
         ox.settings.use_cache = not ignore_cache
         ox.settings.useful_tags_node = list(set(ox.settings.useful_tags_node + CrossroadSchematization.node_tags_to_keep))
-        G_init = cru.Util.get_osm_data(latitude, longitude, 200, overpass)#, ["cycleway", "cycleway:right", "cycleway:left", "psv"])
+        G_init = cru.Util.get_osm_data(latitude, longitude, 300, overpass)#, ["cycleway", "cycleway:right", "cycleway:left", "psv"])
 
         # segment intersection(from https://github.com/jmtrivial/crossroads-segmentation)
         if verbose:
@@ -138,7 +138,7 @@ class CrossroadSchematization:
         G = cseg.Segmentation.prepare_network(deepcopy(G_init))
         # build an undirected version of the graph
         undirected_G = ox.utils_graph.get_undirected(G)
-        
+
         # segment it using topology and semantic
         seg = cseg.Segmentation(undirected_G, C0 = C0, C1 = C1, C2 = C2, max_cycle_elements = 10, similar_direction_angle = similar_direction_angle)
         seg.process()
@@ -252,7 +252,7 @@ class CrossroadSchematization:
                                                                    truncate_by_edge=True, 
                                                                    simplify=False)
         else:
-            self.osm_input_oriented = cseg.Segmentation.prepare_network(copy.deepcopy(osm_oriented), remove_footways=False)
+            self.osm_input_oriented = cseg.Segmentation.prepare_network(copy.deepcopy(osm_oriented), remove_footways=False, keep_all_components=True)
 
         # project to Lambert93 (France) for a metric approximation
         self.osm_input_oriented = osmnx.projection.project_graph(self.osm_input_oriented, to_crs = "EPSG:2154")

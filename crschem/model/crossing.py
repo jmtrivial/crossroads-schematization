@@ -36,6 +36,8 @@ class Crossing:
 
             # split adjacent ways in two groups
             self.compute_adjacent_ways_ditribution()
+        else:
+            print("WARNING: no road node")
 
 
         self.compute_crossing_profile()
