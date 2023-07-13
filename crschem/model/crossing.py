@@ -3,6 +3,7 @@ from shapely.geometry import Point
 import geopandas
 
 from .. import utils as u
+from crseg.utils import Util as ucr
 
 class Crossing:
 
@@ -260,12 +261,15 @@ class Crossing:
         return [u.Utils.normalized_vector(self.osm_input.nodes[self.node_id], self.osm_input.nodes[n]) for n in nodes]
 
 
-    def has_adjacent_crossing(osm_input, cr_input, node, radius = 5):
+    def has_adjacent_crossing(osm_input, cr_input, node, radius = 7):
+        if len(osm_input[node]) != 2:
+            return False
+
         # check for all nodes near to the given node
-        for n in osm_input.nodes:
+        for n in sum([ucr.get_path_to_biffurcation(osm_input, node, x) for x in osm_input[node]], []):
             if n != node and Crossing.is_crossing(n, cr_input):
                 distance = u.Utils.edge_length(osm_input.nodes[n], osm_input.nodes[node])
-                if distance < radius or (n in osm_input[node] and distance < 2 * radius):
+                if distance < radius:
                     return True
 
         return False
