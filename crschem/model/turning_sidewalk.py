@@ -120,6 +120,7 @@ class TurningSidewalk:
         # find all edges of the original graph that are part of the sidewalk
         polybranch1 = self.str_sidewalks[0].get_polybranch()
         polybranch2 = self.str_sidewalks[1].get_polybranch()
+        print(polybranch1, polybranch2)
         
         # initialize the final path with the first polybranch
         self.original_path = polybranch1[::-1]
@@ -128,6 +129,7 @@ class TurningSidewalk:
             if self.original_path[-1] == None:
                 # error: no continuity (should not be possible)
                 self.original_path = None
+                print("ERROR: no continuity along original path")
                 return
         
         # add the final part
@@ -248,6 +250,11 @@ class TurningSidewalk:
     def adjust_flexible_points(self):
         buffered_osm = u.Utils.get_buffered_osm(self.osm_input, self.distance_kerb_footway)
 
+        # DEBUG BEGIN
+        gdr = geopandas.GeoDataFrame({'feature': [0], 'geometry': buffered_osm})
+        gdr.to_file("/tmp/buffered_osm.shp")
+        # DEBUG END
+
         for id_point in range(1, len(self.way) - 1):
             pred = self.way[id_point - 1]
             point = self.way[id_point]
@@ -256,7 +263,13 @@ class TurningSidewalk:
                 middle_bevel = Point([(x + y) / 2 for x, y in zip(pred.coord, next.coord)])
                 middle_extand = self.compute_straight_angle(id_point)
 
-                if middle_extand is None:
+                # DEBUG BEGIN
+                gdr = geopandas.GeoDataFrame({'feature': [0], 'geometry': LineString([pred.coord, next.coord])})
+                gdr.to_file("/tmp/edge" + str(self.id) + "-" + str(id_point) + ".shp")
+                # DEBUG END
+
+
+                if middle_extand is None or u.Utils.is_colinear(middle_extand, pred.coord, next.coord, 1e-1):
                     self.way[id_point].coord = middle_bevel.coords[0]
                 else:
                     merge_distance = 1
@@ -271,6 +284,11 @@ class TurningSidewalk:
                             # first check for basic intersection
                             edge = u.Utils.extends_edge((middle_extand, middle_bevel.coords[0]), 0, 3)
                             line = LineString(edge)
+
+                            # DEBUG BEGIN
+                            gdr = geopandas.GeoDataFrame({'feature': [0], 'geometry': line})
+                            gdr.to_file("/tmp/line" + str(self.id) + "-" + str(id_point) + ".shp")
+                            # DEBUG END
 
                             if buffered_osm.intersects(line):
                                 # build a more complex turn

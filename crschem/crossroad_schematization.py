@@ -27,7 +27,6 @@ from .model.branch import Branch
 from .model.traffic_island import TrafficIsland
 from .model.turning_sidewalk import TurningSidewalk
 from .model.simple_way import SimpleWay
-from .model.straight_way import StraightWay
 from .model.crossing import Crossing
 
 class CrossroadSchematization:
@@ -281,10 +280,16 @@ class CrossroadSchematization:
 
 
     def is_boundary_node(self, node):
+        # if one adjacent edge is inside the intersection, return true
         for n in self.osm_input[node]:
             if self.osm_input[node][n][0]["type"] == "way":
                 return True
-        return False
+        # if one adjacent edge is not a branch, return false
+        for n in self.osm_input[node]:
+            if self.osm_input[node][n][0]["type"] != "branch":
+                return False
+        # otherwise, it's a boundary node
+        return True
 
 
     def build_branches(self):

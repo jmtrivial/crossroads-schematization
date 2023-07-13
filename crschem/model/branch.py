@@ -23,6 +23,7 @@ class Branch:
 
     
     def add_way(self, way):
+        print("on ajoute la way", way)
         self.ways.append(way)
 
     

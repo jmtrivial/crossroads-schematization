@@ -56,6 +56,13 @@ class Utils:
         v = Utils.vector(n1, n2)
         return linalg.norm(np.array(v), 2)
 
+
+    def is_colinear(p, n1, n2, epsilon = 1e-6):
+        v = Utils.normalized_vector(n1, n2)
+        vp = Utils.normalized_vector(n1, p)
+
+        return abs(np.cross(v, vp)) < epsilon
+
     # return true if p is a point in the edge (n1, n2)
     def is_in_edge(p, n1, n2):
         v = Utils.vector(n1, n2)
