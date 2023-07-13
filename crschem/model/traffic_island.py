@@ -300,6 +300,10 @@ class TrafficIsland:
 
 
     def is_linear_island_wrt_extremities(self):
+
+        if len(self.extremities) == 0:
+            return False
+
         # maximum distance for a point to be considered close to the middle 
         max_distance = math.sqrt(self.threshold_small_island)
 
