@@ -87,7 +87,8 @@ class CrossroadSchematization:
                  remove_doubled_crossings = True,
                  osm_buffer_size_meters = 200, 
                  distance_kerb_footway = 0.5,
-                 white_space_meter = 1.5):
+                 white_space_meter = 1.5, 
+                 threshold_small_island = 30):
         self.osm_buffer_size_meters = osm_buffer_size_meters
         self.distance_kerb_footway = distance_kerb_footway
         self.white_space_meter = white_space_meter
@@ -96,6 +97,7 @@ class CrossroadSchematization:
         self.use_fixed_width_on_branches = use_fixed_width_on_branches
         self.turn_shape = turn_shape
         self.remove_doubled_crossings = remove_doubled_crossings
+        self.threshold_small_island = threshold_small_island
 
         self.load_osm(osm_oriented, osm_unoriented)
 
@@ -115,7 +117,8 @@ class CrossroadSchematization:
               verbose = True,
               ignore_cache = False,
               overpass = False,
-              log_files = False):
+              log_files = False,
+              threshold_small_island = 30):
 
         import crseg.segmentation as cseg
         import crseg.utils as cru
@@ -174,7 +177,8 @@ class CrossroadSchematization:
                                         ignore_crossings_for_sidewalks=ignore_crossings_for_sidewalks, 
                                         use_fixed_width_on_branches=use_fixed_width_on_branches,
                                         turn_shape=turn_shape,
-                                        remove_doubled_crossings=remove_doubled_crossings)
+                                        remove_doubled_crossings=remove_doubled_crossings,
+                                        threshold_small_island=threshold_small_island)
 
     def is_valid_model(self):
         for index, elem in self.cr_input.iterrows():
@@ -408,7 +412,8 @@ class CrossroadSchematization:
         # then build traffic islands
         self.traffic_islands = []
         for eid in traffic_islands_edges:
-            self.traffic_islands.append(TrafficIsland(eid, traffic_islands_edges[eid], self.osm_input, self.cr_input, self.crossings, self.distance_kerb_footway))
+            self.traffic_islands.append(TrafficIsland(eid, traffic_islands_edges[eid], self.osm_input, self.cr_input, 
+                                self.crossings, self.distance_kerb_footway, self.threshold_small_island))
 
 
     def getMapnikMap(self, dirName, resolution, scale, layout, marginCM):

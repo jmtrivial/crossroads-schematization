@@ -46,6 +46,7 @@ group_process.add_argument('--keep-doubled-crossings', help='In case of double c
 group_process.add_argument('--ignore-crossings-for-sidewalks', help='Do not use crossings to shape the sidewalks', action='store_true')
 group_process.add_argument('--use-fixed-width-on-branches', help='Use a fixed width on each branch (do not evaluate the width adjustment)', action='store_true')
 group_process.add_argument('--turn-shape', help='Turn shape.', type=lambda s: TurningSidewalk.TurnShape[s], choices=list(TurningSidewalk.TurnShape))
+group_process.add_argument('--threshold-small-island', help='Area of a traffic island to be considered as small or large (m2). Default: 30', type=float, default=30)
 
 group_output = parser.add_argument_group("Output", "Display, log or save results")
 group_output.add_argument('-l', '--log-files', help='keep intermediate files and give their name in output', action='store_true')
@@ -84,6 +85,7 @@ try:
                                                    use_fixed_width_on_branches = args.use_fixed_width_on_branches,
                                                    turn_shape = args.turn_shape,
                                                    remove_doubled_crossings = not args.keep_doubled_crossings,
+                                                   threshold_small_island = args.threshold_small_island,
                                                    ignore_cache = args.ignore_cache,
                                                    overpass = args.overpass,
                                                    log_files = args.log_files)
