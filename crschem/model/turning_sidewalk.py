@@ -120,7 +120,6 @@ class TurningSidewalk:
         # find all edges of the original graph that are part of the sidewalk
         polybranch1 = self.str_sidewalks[0].get_polybranch()
         polybranch2 = self.str_sidewalks[1].get_polybranch()
-        print(polybranch1, polybranch2)
         
         # initialize the final path with the first polybranch
         self.original_path = polybranch1[::-1]

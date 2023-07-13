@@ -15,7 +15,6 @@ class StraightWay(SimpleWay):
     def __init__(self, sw, polybranch, G):
         super().__init__(sw.n1, sw.n2, sw.edge_tags, sw.same_osm_orientation)
         self.polybranch = polybranch
-        print(self.polybranch)
         self.edge = None
         self.array = None
         self.G = G
