@@ -38,6 +38,13 @@ class Utils:
         return [node2[0] - node1[0], node2[1] - node1[1]]
 
 
+    def translate(p, v):
+        pa = Utils.to_array(p)
+        va = Utils.to_array(v)
+
+        return [ppa + vva for ppa, vva in zip(pa, va)]
+
+
     def norm_and_dot(v1, v2):
         av1 = v1 / np.linalg.norm(v1)
         av2 = v2 / np.linalg.norm(v2)
@@ -96,13 +103,23 @@ class Utils:
         return int(txt)
 
 
-    def angle_modulo(a):
+    def modulo(a, r):
         if a < 0:
-            return Utils.angle_modulo(a + 2 * math.pi)
-        elif a > 2 * math.pi:
-            return Utils.angle_modulo(a - 2 * math.pi)
+            return Utils.modulo(a + r, r)
+        elif a > r:
+            return Utils.modulo(a - r, r)
         else:
             return a
+
+
+    def angle_distance(a, b):
+        d1 = Utils.angle_modulo(a - b)
+        d2 = Utils.angle_modulo(b - a)
+        return min(d1, d2)
+
+
+    def angle_modulo(a):
+        return Utils.modulo(a, 2 * math.pi)
 
 
     def angle_mean(a1, a2):
@@ -114,6 +131,9 @@ class Utils:
             return m1 - 2 * math.pi
         else:
             return m1
+
+    def get_bearing_radian(p1, p2):
+            return math.atan2(-(p2[1] - p1[1]), (p2[0] - p1[0]))
 
     
     def turn_angle(G, middle, n2, n3):
@@ -270,4 +290,19 @@ class Utils:
         v = [center.x - start[0], center.y - start[1]]
         v = v / linalg.norm(v)
         return LineString([start - v * length1, end + v * length2])
+
+    def bounding_box_nodes(osm):
+        if len(osm.nodes) == 0:
+            return []
+        first = list(osm.nodes.items())[0][1]
+        minx = maxx = first["x"]
+        miny = maxy = first["y"]
+
+        for n in osm.nodes:
+            minx = min(minx, osm.nodes[n]["x"])
+            maxx = max(maxx, osm.nodes[n]["x"])
+            miny = min(miny, osm.nodes[n]["y"])
+            maxy = max(maxy, osm.nodes[n]["y"])
+
+        return [[minx, miny], [minx, maxy], [maxx, miny], [maxx, maxy]]
 

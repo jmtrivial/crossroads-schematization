@@ -28,6 +28,7 @@ from .model.traffic_island import TrafficIsland
 from .model.turning_sidewalk import TurningSidewalk
 from .model.simple_way import SimpleWay
 from .model.crossing import Crossing
+from .normalization.normalizer import Normalizer
 
 class CrossroadSchematization:
 
@@ -88,7 +89,9 @@ class CrossroadSchematization:
                  osm_buffer_size_meters = 200, 
                  distance_kerb_footway = 0.5,
                  white_space_meter = 1.5, 
-                 threshold_small_island = 30):
+                 threshold_small_island = 30,
+                 normalizing_angles = 0,
+                 snap_aligned_streets = True):
         self.osm_buffer_size_meters = osm_buffer_size_meters
         self.distance_kerb_footway = distance_kerb_footway
         self.white_space_meter = white_space_meter
@@ -98,6 +101,8 @@ class CrossroadSchematization:
         self.turn_shape = turn_shape
         self.remove_doubled_crossings = remove_doubled_crossings
         self.threshold_small_island = threshold_small_island
+        self.normalizing_angles = normalizing_angles
+        self.snap_aligned_streets = snap_aligned_streets
 
         self.load_osm(osm_oriented, osm_unoriented)
 
@@ -114,6 +119,8 @@ class CrossroadSchematization:
               use_fixed_width_on_branches = False,
               turn_shape = TurningSidewalk.TurnShape.ADJUSTED_ANGLE,
               remove_doubled_crossings = True,
+              normalizing_angles = 0,
+              snap_aligned_streets = True,
               verbose = True,
               ignore_cache = False,
               overpass = False,
@@ -178,7 +185,9 @@ class CrossroadSchematization:
                                         use_fixed_width_on_branches=use_fixed_width_on_branches,
                                         turn_shape=turn_shape,
                                         remove_doubled_crossings=remove_doubled_crossings,
-                                        threshold_small_island=threshold_small_island)
+                                        threshold_small_island=threshold_small_island,
+                                        normalizing_angles=normalizing_angles,
+                                        snap_aligned_streets=snap_aligned_streets)
 
     def is_valid_model(self):
         for index, elem in self.cr_input.iterrows():
@@ -201,6 +210,10 @@ class CrossroadSchematization:
         # grouping ways by branch
         print("Creating branches")
         self.build_branches()
+
+        print("Geometry normalization")
+        if self.normalizing_angles != 0:
+            self.normalize_geometry()
 
         # compute for each branch two long edges *S1* and *S2* corresponding to the sidewalks:
         print("Creating sidewalks")
@@ -315,6 +328,16 @@ class CrossroadSchematization:
                     if not id in self.branches:
                         self.branches[id] = Branch(bname, id, self.osm_input, self.cr_input, self.distance_kerb_footway)
                     self.branches[id].add_way(SimpleWay(n1, n2, e, osm_n1 == n1))
+
+
+    def normalize_geometry(self):
+
+        n = Normalizer(angular_discretization = self.normalizing_angles, 
+                       snap_aligned_streets = self.snap_aligned_streets)
+
+        n.normalize_branches(self.branches, self.center)
+
+        n.adjust_nodes(self.osm_input)
 
 
     def build_sidewalks(self):

@@ -23,6 +23,14 @@ class FileOpener(argparse.FileType):
     file =  property(open, None, None, 'open file property')
 
 
+def higher_than_one(value):
+    if not value.isnumeric():
+        return argparse.ArgumentTypeError("%s is an invalid positive (>1) int value" % value)
+    ivalue = int(value)
+    if  ivalue > 1:
+        return ivalue
+    else:
+        return argparse.ArgumentTypeError("%s is an invalid positive (>1) int value" % value)
 
 parser = argparse.ArgumentParser(description="Generate a schematized representation of a given crossroad.")
 
@@ -47,6 +55,9 @@ group_process.add_argument('--ignore-crossings-for-sidewalks', help='Do not use 
 group_process.add_argument('--use-fixed-width-on-branches', help='Use a fixed width on each branch (do not evaluate the width adjustment)', action='store_true')
 group_process.add_argument('--turn-shape', help='Turn shape.', type=lambda s: TurningSidewalk.TurnShape[s], choices=list(TurningSidewalk.TurnShape))
 group_process.add_argument('--threshold-small-island', help='Area of a traffic island to be considered as small or large (m2). Default: 30', type=float, default=30)
+group_process.add_argument('--normalizing-angles', help='Number of directions for normalization. Examples: 4, 8, 12. Use 0 for no angular normalization. Default: 0', type=higher_than_one, default=0)
+group_process.add_argument('--no-snap-aligned-streets', help='Do not snap aligned streets.', action='store_true')
+
 
 group_output = parser.add_argument_group("Output", "Display, log or save results")
 group_output.add_argument('-l', '--log-files', help='keep intermediate files and give their name in output', action='store_true')
@@ -86,6 +97,8 @@ try:
                                                    turn_shape = args.turn_shape,
                                                    remove_doubled_crossings = not args.keep_doubled_crossings,
                                                    threshold_small_island = args.threshold_small_island,
+                                                   normalizing_angles = args.normalizing_angles,
+                                                   snap_aligned_streets = not args.no_snap_aligned_streets,
                                                    ignore_cache = args.ignore_cache,
                                                    overpass = args.overpass,
                                                    log_files = args.log_files)

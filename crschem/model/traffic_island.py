@@ -79,6 +79,7 @@ class TrafficIsland:
         self.inner_polygon = ring.buffer(0).difference(buffered)
 
     def extends_polygon_with_osm(self):
+        # TODO: use ideas from crbranch to improve island shapes
         next = p.Expander.find_next_edge_simple(self.osm_input, self.polygon[-2], self.polygon[-1])
         while next != None:
             self.polygon.append(next)

@@ -20,6 +20,8 @@ class Branch:
         self.osm_input = osm_input
         self.cr_input = cr_input
         self.distance_kerb_footway = distance_kerb_footway
+        self.middle_line = None
+        self.widths = None
 
     
     def add_way(self, way):
@@ -141,9 +143,14 @@ class Branch:
                        StraightWay.build_from_simpleway(self.simple_sides[1], self.osm_input, False)] # always choose the right
 
 
+    def get_middle_way_orientation(self):
+        if self.middle_line is None:
+            self.compute_middle_way_and_widths()
+        
+        return u.Utils.get_bearing_radian(self.middle_line.coords[0], self.middle_line.coords[1])
 
-    def get_sidewalks(self, use_fixed_width_on_branches):
 
+    def compute_middle_way_and_widths(self):
         self.build_sidewalk_straightways()
 
         # TODO: shift each extremity of each sidewalk wrt the estimated width of each extremity
@@ -151,6 +158,18 @@ class Branch:
         self.build_middle_way()
 
         self.compute_widths()
+
+
+    def get_mean_width(self):
+        if not self.widths or len(self.widths) == 0:
+            return None
+        else:
+            return sum(self.widths) / len(self.widths)
+
+    def get_sidewalks(self, use_fixed_width_on_branches):
+
+        if self.widths is None:
+            self.compute_middle_way_and_widths()
 
         self.build_two_sidewalks(use_fixed_width_on_branches)
 
@@ -171,3 +190,11 @@ class Branch:
             d["geometry"].append(b.getGeometry())
 
         return geopandas.GeoDataFrame(d, crs=2154)
+
+    def get_all_nodes(self):
+        result = set()
+
+        for s in self.sides:
+            result.update(s.polybranch)
+
+        return list(result)
