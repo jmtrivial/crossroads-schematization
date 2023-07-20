@@ -212,7 +212,7 @@ class CrossroadSchematization:
         self.build_branches()
 
         print("Geometry normalization")
-        if self.normalizing_angles != 0:
+        if self.normalizing_angles != 0 or self.snap_aligned_streets:
             self.normalize_geometry()
 
         # compute for each branch two long edges *S1* and *S2* corresponding to the sidewalks:

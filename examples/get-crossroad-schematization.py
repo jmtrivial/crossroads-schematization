@@ -25,12 +25,12 @@ class FileOpener(argparse.FileType):
 
 def higher_than_one(value):
     if not value.isnumeric():
-        return argparse.ArgumentTypeError("%s is an invalid positive (>1) int value" % value)
+        return argparse.ArgumentTypeError("%s is an invalid positive (>=0) int value" % value)
     ivalue = int(value)
-    if  ivalue > 1:
+    if  ivalue >= 0:
         return ivalue
     else:
-        return argparse.ArgumentTypeError("%s is an invalid positive (>1) int value" % value)
+        return argparse.ArgumentTypeError("%s is an invalid positive (>=0) int value" % value)
 
 parser = argparse.ArgumentParser(description="Generate a schematized representation of a given crossroad.")
 
