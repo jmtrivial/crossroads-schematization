@@ -217,7 +217,8 @@ class NormalizedBranch:
     def get_transformation_matrix(self):
         if self.__matrix is None:
 
-            angle = self.get_matrix_rotation_angle()
+            # REMARK: latitude coordinate is inverted (-> angle is inverted)
+            angle = -self.get_matrix_rotation_angle()
             center = self.middle_line.coords[0]
             offset = self.get_matrix_translation_offset()
             

@@ -291,7 +291,7 @@ class Utils:
         v = v / linalg.norm(v)
         return LineString([start - v * length1, end + v * length2])
 
-    def bounding_box_nodes(osm):
+    def bounding_box_nodes(osm, shift = 0):
         if len(osm.nodes) == 0:
             return []
         first = list(osm.nodes.items())[0][1]
@@ -304,5 +304,5 @@ class Utils:
             miny = min(miny, osm.nodes[n]["y"])
             maxy = max(maxy, osm.nodes[n]["y"])
 
-        return [[minx, miny], [minx, maxy], [maxx, miny], [maxx, maxy]]
+        return [[minx - shift, miny - shift], [minx - shift, maxy + shift], [maxx + shift, miny - shift], [maxx + shift, maxy + shift]]
 

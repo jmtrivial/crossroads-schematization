@@ -70,11 +70,8 @@ class Normalizer:
     def adjust_nodes(self, osm_input):
         new_coords = {}
         branch_nodes = []
-
-        # TODO: 
-        # - ajouter des noeuds dans le Delaunay correspondant à l'extrémité des arêtes des branches (carrefour rue Blatin)
-        # - prolonger plus loin les polybranches des arêtes (carrefour carré)
-        # - agrandir un peu la zone de bounding box
+        middle_lines_nodes = []
+        new_middle_lines_nodes = []
 
         # for each point
         # if it's inside a branch
@@ -87,13 +84,20 @@ class Normalizer:
                 new_coords[n] = [new_loc.x, new_loc.y]
                 branch_nodes.append(n)
 
+            # consider also extremity points from the middle line
+            middle_lines_nodes.append(b.middle_line.coords[0])
+            middle_lines_nodes.append(b.middle_line.coords[1])
+            new_middle_lines_nodes.append(b.get_new_middle_line().coords[0])
+            new_middle_lines_nodes.append(b.get_new_middle_line().coords[1])
+
+
         # create bounding box nodes
-        bound_nodes = u.Utils.bounding_box_nodes(osm_input)
+        bound_nodes = u.Utils.bounding_box_nodes(osm_input, 50)
 
         # then for all other points, we apply a continuous deformation
 
         # build a Delaunay triangulation of points inside branches (with original coordinates)
-        points = np.array([[osm_input.nodes[n]["x"], osm_input.nodes[n]["y"]] for n in branch_nodes] + bound_nodes)
+        points = np.array([[osm_input.nodes[n]["x"], osm_input.nodes[n]["y"]] for n in branch_nodes] + bound_nodes + middle_lines_nodes)
         tri = Delaunay(points)
         
         # for all the other points, compute their coordinate (triangle ID, and barycentric coordinates) in the original triangulation
@@ -108,7 +112,9 @@ class Normalizer:
             point = np.array([(osm_input.nodes[op]["x"], osm_input.nodes[op]["y"])])
             b = tri.transform[tr, :2].dot(np.transpose(point - tri.transform[tr, 2]))
             coords = np.c_[np.transpose(b), 1 - b.sum(axis=0)][0]
-            new_tri = [new_coords[branch_nodes[n]] if n < len(branch_nodes) else bound_nodes[n - len(branch_nodes)] for n in ids]
+            new_tri = [new_coords[branch_nodes[n]] if n < len(branch_nodes) else \
+                       bound_nodes[n - len(branch_nodes)] if n < len(branch_nodes) + 4 else \
+                       new_middle_lines_nodes[n - len(branch_nodes) - 4] for n in ids]
 
             new_point = [sum([c * t[0] for c, t in zip(coords, new_tri)]), \
                          sum([c * t[1] for c, t in zip(coords, new_tri)])]
